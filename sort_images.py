@@ -41,6 +41,7 @@ def parse_source_folder(folder):
     """
 
     # parse the input directory
+
     jpg_files = glob.glob(folder+"\\*.jpg")
     jpg_files = jpg_files + glob.glob(folder + "\\*.JPG")
     jpg_files = jpg_files + glob.glob(folder + "\\*.jpeg")
@@ -67,28 +68,52 @@ def create_destination_folders(dest_root, unique_destination_folders):
     for folder in unique_destination_folders:
         destination_folder = "%s\%s" % (dest_root, folder)
         if not os.path.exists(destination_folder):
-            print("Creating: %s" % destination_folder)
+            print("done   : %s" % destination_folder)
             os.makedirs(destination_folder)
+        else:
+            print("skipped: %s" % destination_folder)
+
+def create_folders(folders):
+    """ create output directories if needed
+     :param folders: a list of PurePAth folders
+     """
+    for folder in folders:
+        if not os.path.exists(str(folder)):
+            print("done   : %s" % folder)
+            os.makedirs(str(folder))
+        else:
+            print("skipped: %s" %folder)
 
 
 def move_files(dest_root, destination_folders):
     """ move files to where they belong
-    :param destination_folders: a file name ordered list of destination folders
+    :param destination_folders: a file name ordered dict of destination folders
     """
     for file in destination_folders.keys():
         destination_folder = "%s\%s" % (dest_root, destination_folders[file])
         print(" mv %s %s" % (file, destination_folder))
-        # shutil.move(file, destination_folder)
+        shutil.move(file, destination_folder)
 
 
 
-# read all jpg files from a folder
-src_folder = 'd:\\test_source'
-dst_folder = 'd:\\sorted'
+src_root = PurePath('d:/test_source')
+dst_root = PurePath('d:/sorted')
 
-all_folders, unique_folders = parse_source_folder(src_folder)
-print("Folders to create\n")
-print(unique_folders)
+print ("Source:",src_root)
+print ("Destination:",dst_root)
+
+#parse the source folder and retrieve le list of unique folder to create as well as the list of which
+# source file to mote to which destination folder
+file_to_folder, unique_folders = parse_source_folder(str(src_root))
+
+#create the destination folders
+create_destination_folders(dst_root,unique_folders)
+
+#move the content where it belongs
+move_files(dst_root,file_to_folder)
+
+
+
 
 
 

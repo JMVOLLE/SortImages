@@ -124,16 +124,36 @@ def gui_main():
     #label.pack()
 
     #http://tkinter.unpythonic.net/wiki/tkFileDialog
-    str_root = filedialog.askdirectory(title="Please select Images source folder",
+
+    # source and destination widgets are packed in their own frame
+    frame_src = Frame(main_window)
+    frame_src.pack()
+    frame_dst = Frame(main_window)
+    frame_dst.pack()
+
+    src_root = filedialog.askdirectory(title="Please select Images source folder",
                                     mustexist = True,
                                     initialdir=os.path.expanduser('~/.')
                                    );
-    str_label = "Source:"
-    src_text = Label(main_window, text= "Source:")
-    src_text.pack()
-    src_value = Label(main_window, text= str_root)
-    src_value.pack()
 
+    src_text = Label(frame_src, text= "Source:")
+    src_text.pack(side=LEFT)
+    src_button = Button(frame_src, text="Select source folder")
+    src_button.pack(side=LEFT)
+    src_value = Label(frame_src, text= src_root)
+    src_value.pack(side=LEFT)
+
+    dst_root = filedialog.askdirectory(title="Please select Images source folder",
+                                       mustexist=True,
+                                       initialdir=os.path.expanduser('~/')
+                                       );
+
+
+
+    dst_text = Label(frame_dst, text="Destination:")
+    dst_text.pack(side=LEFT)
+    dst_value = Label(frame_dst, text=dst_root)
+    dst_value.pack(side=LEFT)
     main_window.mainloop()
 
 

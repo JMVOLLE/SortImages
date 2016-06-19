@@ -2,6 +2,8 @@
 import exifread
 import datetime
 import glob
+from pathlib import Path
+from pathlib import PurePath
 import shutil
 import os
 import tkinter
@@ -34,7 +36,7 @@ def get_capture_date(file_name):
 def parse_source_folder(folder):
     """ find jpg files in the input folder
     :param folder: folder to parse
-    :return: destination_folders : dicti of relative destination folder (keyed by file names)
+    :return: destination_folders : dict of relative destination folder (keyed by file names)
     :return: unique_folders : set of relative destination folder
     """
 

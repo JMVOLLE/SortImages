@@ -6,7 +6,10 @@ from pathlib import Path
 from pathlib import PurePath
 import shutil
 import os
-import tkinter
+
+# GUI stuff
+from tkinter import *
+from tkinter import filedialog
 
 # some constants
 
@@ -95,26 +98,47 @@ def move_files(dest_root, destination_folders):
         shutil.move(file, destination_folder)
 
 
+def command_line_test():
+    src_root = PurePath('d:/test_source')
+    dst_root = PurePath('d:/sorted')
 
-src_root = PurePath('d:/test_source')
-dst_root = PurePath('d:/sorted')
+    print ("Source:",src_root)
+    print ("Destination:",dst_root)
 
-print ("Source:",src_root)
-print ("Destination:",dst_root)
+    #parse the source folder and retrieve le list of unique folder to create as well as the list of which
+    # source file to mote to which destination folder
+    file_to_folder, unique_folders = parse_source_folder(str(src_root))
 
-#parse the source folder and retrieve le list of unique folder to create as well as the list of which
-# source file to mote to which destination folder
-file_to_folder, unique_folders = parse_source_folder(str(src_root))
+    #create the destination folders
+    create_destination_folders(dst_root,unique_folders)
 
-#create the destination folders
-create_destination_folders(dst_root,unique_folders)
+    #move the content where it belongs
+    move_files(dst_root,file_to_folder)
 
-#move the content where it belongs
-move_files(dst_root,file_to_folder)
+def gui_main():
+    main_window = Tk()
+    main_window.title("Image sorter V1.0");
+
+    #label = Label(main_window, text="=== Image sorter ===")
+
+    #label.pack()
+
+    #http://tkinter.unpythonic.net/wiki/tkFileDialog
+    str_root = filedialog.askdirectory(title="Please select Images source folder",
+                                    mustexist = True,
+                                    initialdir=os.path.expanduser('~/.')
+                                   );
+    str_label = "Source:"
+    src_text = Label(main_window, text= "Source:")
+    src_text.pack()
+    src_value = Label(main_window, text= str_root)
+    src_value.pack()
+
+    main_window.mainloop()
 
 
 
-
+gui_main()
 
 
 

@@ -9,6 +9,7 @@ import os
 
 # GUI stuff
 from tkinter import *
+import tkinter as tk
 from tkinter import filedialog
 
 # some constants
@@ -134,7 +135,7 @@ def gui_main():
     src_root = filedialog.askdirectory(title="Please select Images source folder",
                                     mustexist = True,
                                     initialdir=os.path.expanduser('~/.')
-                                   );
+                                   )
 
     src_text = Label(frame_src, text= "Source:")
     src_text.pack(side=LEFT)
@@ -146,7 +147,7 @@ def gui_main():
     dst_root = filedialog.askdirectory(title="Please select Images source folder",
                                        mustexist=True,
                                        initialdir=os.path.expanduser('~/')
-                                       );
+                                       )
 
 
 
@@ -158,7 +159,52 @@ def gui_main():
 
 
 
-gui_main()
+class Application(tk.Frame):
+    def __init__(self, master=None):
+        tk.Frame.__init__(self, master)
+        self.pack()
+        self.createWidgets()
+    def createWidgets(self):
+        # self.hi_there = tk.Button(self)
+        # self.hi_there["text"] = "Hello World\n(click me)"
+        # self.hi_there["command"] = self.say_hi
+        # self.hi_there.pack(side="top")
+
+        self.QUIT = tk.Button(self, text="QUIT", fg="red",
+                                            command=self.destroy)
+        self.QUIT.pack(side="bottom")
+
+
+        self.SRC_fr = Frame(self)
+        self.SRC_fr.pack(side="top")
+        self.SRC_bt = Button(self.SRC_fr)
+        self.SRC_bt["text"] = "Source"
+        self.SRC_bt["command"] = self.SRC_cb
+        self.SRC_bt.pack(side="left")
+
+        self.DST_fr = Frame(self)
+        self.DST_fr.pack()
+
+        self.DST_bt = Button(self.DST_fr)
+        self.DST_bt["text"] = "Destination"
+        self.DST_bt["command"] = self.DST_cb
+        self.DST_bt.pack(side="left")
+
+    def say_hi(self):
+        print("hi there, everyone!")
+    def SRC_cb(self):
+        print("SRC callback")
+
+    def DST_cb(self):
+        print("DST callback")
+
+
+def test_ui():
+    root = tk.Tk()
+    app = Application(master=root)
+    app.mainloop()
+
+test_ui()
 
 
 

@@ -162,7 +162,7 @@ def gui_main():
 class Application(tk.Frame):
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
-        self.pack()
+        self.grid()
         self.createWidgets()
     def createWidgets(self):
         # self.hi_there = tk.Button(self)
@@ -172,26 +172,27 @@ class Application(tk.Frame):
 
         self.QUIT = tk.Button(self, text="QUIT", fg="red",
                                             command=self.destroy)
-        self.QUIT.pack(side="bottom")
+        #self.QUIT.pack(side="bottom")
 
 
-        self.SRC_fr = Frame(self)
-        self.SRC_fr.pack(side="top")
-        self.SRC_bt = Button(self.SRC_fr)
+        # self.SRC_fr = Frame(self)
+        # self.SRC_fr.pack(side="top")
+        self.SRC_bt = Button(self)
         self.SRC_bt["text"] = "Source:"
         self.SRC_bt["command"] = self.SRC_cb
-        self.SRC_bt.pack(side="left")
+        self.SRC_bt.grid(column = 0, row=0, sticky=tk.E+tk.W)
         self.SRC_txt = Text(self)
-        self.SRC_txt["value"] = "please select source folder"
-        self.SRC_txt.pack(side="right")
+        #self.SRC_txt["value"] = "please select source folder"
+        #self.SRC_txt.pack(side="right")
 
-        self.DST_fr = Frame(self)
-        self.DST_fr.pack()
+#        self.DST_fr = Frame(self)
+        #self.DST_fr.pack()
 
-        self.DST_bt = Button(self.DST_fr)
+        self.DST_bt = Button(self)
         self.DST_bt["text"] = "Destination:"
         self.DST_bt["command"] = self.DST_cb
-        self.DST_bt.pack(side="left")
+        self.DST_bt.grid(column=0, row=1)
+        #self.DST_bt.pack(side="left")
 
     def say_hi(self):
         print("hi there, everyone!")

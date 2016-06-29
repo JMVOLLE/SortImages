@@ -1,4 +1,6 @@
 # dependencies
+from _ast import Str
+
 import exifread
 import datetime
 import glob
@@ -175,13 +177,18 @@ class Application(tk.Frame):
         #self.QUIT.pack(side="bottom")
 
 
-        # self.SRC_fr = Frame(self)
-        # self.SRC_fr.pack(side="top")
         self.SRC_bt = Button(self)
         self.SRC_bt["text"] = "Source:"
         self.SRC_bt["command"] = self.SRC_cb
         self.SRC_bt.grid(column = 0, row=0, sticky=tk.E+tk.W)
         self.SRC_txt = Text(self)
+
+        self.SRC_val = StringVar()
+        self.SRC_val.set("images source folder")
+        self.SRC_entry = Entry(self, textvariable=self.SRC_val,width=64)
+        self.SRC_entry.grid(column=1, row=0, sticky='EW')
+
+
         #self.SRC_txt["value"] = "please select source folder"
         #self.SRC_txt.pack(side="right")
 
@@ -191,24 +198,46 @@ class Application(tk.Frame):
         self.DST_bt = Button(self)
         self.DST_bt["text"] = "Destination:"
         self.DST_bt["command"] = self.DST_cb
-        self.DST_bt.grid(column=0, row=1)
-        #self.DST_bt.pack(side="left")
+        self.DST_bt.grid(column=0, row=1, sticky='EW')
+
+        self.DST_val = StringVar()
+        self.DST_val.set("image destination folder")
+        self.DST_entry = Entry(self, textvariable=self.DST_val)
+        self.DST_entry.grid(column=1, row=1, sticky='EW')
+
+        self.LOG_val = StringVar()
+        self.LOG_txt =Text(self)
+        self.LOG_txt.grid(column=0, row=2,columnspan=2)
 
     def say_hi(self):
         print("hi there, everyone!")
     def SRC_cb(self):
         print("SRC callback")
+        folder = filedialog.askdirectory(title="Please select Images source folder",
+                                           mustexist=True,
+                                           initialdir=os.path.expanduser('~/.')
+                                           )
+        self.SRC_val.set(folder)
+
+        self.Log("source folder:%s\n" %self.SRC_val.get())
 
     def DST_cb(self):
-        print("DST callback")
+        folder = filedialog.askdirectory(title="Please select Images destination folder",
+                                         mustexist=True,
+                                         initialdir=os.path.expanduser('~/.')
+                                         )
+        self.DST_val.set(folder)
+        self.Log("destination folder:%s\n" % self.DST_val.get())
+    def Log(self,val):
+        self.LOG_txt.configure(state='normal')
+        self.LOG_txt.insert(END,val)
+        self.LOG_txt.configure(state='disabled')
 
-
-def test_ui():
+if __name__ == "__main__":
     root = tk.Tk()
+    root.title("Sort Images V1.0")
     app = Application(master=root)
     app.mainloop()
-
-test_ui()
 
 
 

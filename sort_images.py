@@ -178,15 +178,18 @@ class Application(tk.Frame):
         self.SRC_fr = Frame(self)
         self.SRC_fr.pack(side="top")
         self.SRC_bt = Button(self.SRC_fr)
-        self.SRC_bt["text"] = "Source"
+        self.SRC_bt["text"] = "Source:"
         self.SRC_bt["command"] = self.SRC_cb
         self.SRC_bt.pack(side="left")
+        self.SRC_txt = Text(self)
+        self.SRC_txt["value"] = "please select source folder"
+        self.SRC_txt.pack(side="right")
 
         self.DST_fr = Frame(self)
         self.DST_fr.pack()
 
         self.DST_bt = Button(self.DST_fr)
-        self.DST_bt["text"] = "Destination"
+        self.DST_bt["text"] = "Destination:"
         self.DST_bt["command"] = self.DST_cb
         self.DST_bt.pack(side="left")
 

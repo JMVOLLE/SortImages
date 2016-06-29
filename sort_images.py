@@ -205,12 +205,19 @@ class Application(tk.Frame):
         self.DST_entry = Entry(self, textvariable=self.DST_val)
         self.DST_entry.grid(column=1, row=1, sticky='EW')
 
-        self.LOG_val = StringVar()
-        self.LOG_txt =Text(self)
-        self.LOG_txt.grid(column=0, row=2,columnspan=2)
 
-    def say_hi(self):
-        print("hi there, everyone!")
+        self.STATUS_txt = Text(self,height=1)
+        self.STATUS_txt.grid(column=0, row=2, columnspan=2)
+        #self.STATUS_txt.insert("0.0","Waiting for inputs")
+        self.Status("Waiting for inputs")
+        self.LOG_txt =Text(self)
+        self.LOG_txt.grid(column=0, row=3,columnspan=2)
+
+        self.COPY_bt = Button(self)
+        self.COPY_bt["text"] = "COPY"
+        self.COPY_bt["command"] = self.COPY_cb
+        self.COPY_bt.grid(column=2, row=0, sticky=tk.E + tk.W,rowspan=2)
+
     def SRC_cb(self):
         print("SRC callback")
         folder = filedialog.askdirectory(title="Please select Images source folder",
@@ -228,10 +235,71 @@ class Application(tk.Frame):
                                          )
         self.DST_val.set(folder)
         self.Log("destination folder:%s\n" % self.DST_val.get())
+
+    def COPY_cb(self):
+        src = self.SRC_val.get()
+        dst = self.DST_val.get()
+        file_to_folder, unique_folders = self.parse_source_folder(src)
+        self.Log("%d files found\n" % len(file_to_folder))
+        self.Log("%d destination folders(s) to create\n" % len(unique_folders))
+
     def Log(self,val):
         self.LOG_txt.configure(state='normal')
         self.LOG_txt.insert(END,val)
         self.LOG_txt.configure(state='disabled')
+
+
+    def Status(self, val):
+        self.STATUS_txt.configure(state='normal')
+        self.STATUS_txt.delete("0.0",END)
+        self.STATUS_txt.insert("0.0", val)
+        self.STATUS_txt.configure(state='disabled')
+        self.status_start = len(val)
+        print (self.status_start)
+
+
+    def IncStatus(self):
+        self.STATUS_txt.configure(state='normal')
+        self.STATUS_txt.insert(END, "o")
+        self.STATUS_txt.configure(state='disabled')
+
+
+    def parse_source_folder(self,folder):
+        """ find jpg files in the input folder
+        :param folder: folder to parse
+        :return: destination_folders : dict of relative destination folder (keyed by file names)
+        :return: unique_folders : set of relative destination folder
+        """
+
+        # parse the input directory
+
+        jpg_files = glob.glob(folder+"\\*.jpg")
+        # windows does not care about case jpg_files = jpg_files + glob.glob(folder + "\\*.JPG")
+        jpg_files = jpg_files + glob.glob(folder + "\\*.jpeg")
+
+        # return values
+        destination_folders = dict()
+        unique_folders = set()
+
+        nb_inc = round(len(jpg_files)/10)
+        cnt = 0
+        self.Status("analyzing source folder")
+        for file in jpg_files:
+            capture_date = get_capture_date(file)
+            destination = "%.4d\%.2d" % (capture_date.year, capture_date.month)
+            destination_folders[file] = destination
+            if destination not in unique_folders:
+                unique_folders.add(destination)
+            cnt = cnt + 1
+            if (cnt % nb_inc) == 0:
+                self.IncStatus()
+        print("%d files found" % len(jpg_files))
+        print("%d destination folders(s) " % len(unique_folders))
+
+        return destination_folders, unique_folders
+
+
+
 
 if __name__ == "__main__":
     root = tk.Tk()

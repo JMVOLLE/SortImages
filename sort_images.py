@@ -139,7 +139,8 @@ def gui_main():
 
     src_root = filedialog.askdirectory(title="Please select Images source folder",
                                     mustexist = True,
-                                    initialdir=os.path.expanduser('~/.')
+                                    #initialdir=os.path.expanduser('~/.')
+                                    initialdir = "D:/photo_maman_2015_02"
                                    )
 
     src_text = Label(frame_src, text= "Source:")
@@ -175,7 +176,7 @@ class Application(tk.Frame):
 
         # state we are running then start periodical polling on the queues
         self.IsRunning = True
-        self.periodic_refresh()
+        self.PeriodicRefresh()
 
     def PeriodicRefresh(self):
         """
@@ -197,20 +198,30 @@ class Application(tk.Frame):
                 # As a test, we simply print it
                 self.LOG_txt.configure(state='normal')
                 self.LOG_txt.insert(END, msg)
+                self.LOG_txt.see(END)
                 self.LOG_txt.configure(state='disabled')
             except queue.Empty:
                 pass
 
     def UpdateStatus(self):
-        while self.SATUS_queue.qsize():
+        while self.STATUS_queue.qsize():
             try:
-                msg = self.SATUS_queue.get(0)
+                msg = self.STATUS_queue.get(0)
                 self.STATUS_txt.configure(state='normal')
                 if msg == "o":
-                    self.STATUS_txt.insert(END, "o")
+                    position = self.STATUS_txt.index("progress")
+                    self.STATUS_txt.delete(position)
+                    self.STATUS_txt.insert(position, "O")
+                    position += "+1c"
+                    self.STATUS_txt.mark_set("progress", position)
                 else:
                     self.STATUS_txt.delete("0.0", END)
-                    self.STATUS_txt.insert("0.0", msg)
+                    self.STATUS_txt.insert("0.0", msg+": ")
+                    start = self.STATUS_txt.index("1.end")
+                    self.STATUS_txt.mark_set("progress",start)
+                    self.STATUS_txt.mark_gravity("progress", LEFT)
+                    self.STATUS_txt.insert(END, "..........")
+
                 self.STATUS_txt.configure(state='disabled')
             except queue.Empty:
                 pass
@@ -257,8 +268,9 @@ class Application(tk.Frame):
 
         self.STATUS_txt = Text(self,height=1)
         self.STATUS_txt.grid(column=0, row=2, columnspan=2)
-        #self.STATUS_txt.insert("0.0","Waiting for inputs")
-        self.Status("Waiting for inputs")
+        self.STATUS_txt.insert("1.0","Waiting for inputs")
+        #self.Status("Waiting for inputs")
+
         self.LOG_txt =Text(self)
         self.LOG_txt.grid(column=0, row=3,columnspan=2)
 
@@ -271,11 +283,11 @@ class Application(tk.Frame):
         print("SRC callback")
         folder = filedialog.askdirectory(title="Please select Images source folder",
                                            mustexist=True,
-                                           initialdir=os.path.expanduser('~/.')
+                                         initialdir="D:/photo_maman_2015_02 - Copie"
                                            )
         self.SRC_val.set(folder)
 
-        self.Log("source folder:%s\n" %self.SRC_val.get())
+        self.Log("source folder: <%s>\n" %self.SRC_val.get())
 
     def DST_cb(self):
         folder = filedialog.askdirectory(title="Please select Images destination folder",
@@ -330,6 +342,7 @@ class Application(tk.Frame):
             capture_date = get_capture_date(file)
             destination = "%.4d\%.2d" % (capture_date.year, capture_date.month)
             destination_folders[file] = destination
+            self.Log(("%s -> %s\n" % (os.path.basename(file),destination)))
             if destination not in unique_folders:
                 unique_folders.add(destination)
             cnt = cnt + 1

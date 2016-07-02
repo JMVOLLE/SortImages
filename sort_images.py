@@ -8,6 +8,9 @@ from pathlib import Path
 from pathlib import PurePath
 import shutil
 import os
+import time
+import threading
+import queue
 
 # GUI stuff
 from tkinter import *
@@ -166,6 +169,52 @@ class Application(tk.Frame):
         tk.Frame.__init__(self, master)
         self.grid()
         self.createWidgets()
+        # Create queues for updating contrent of STATUS_txt and LOG_txt
+        self.LOG_queue = queue.Queue()
+        self.STATUS_queue = queue.Queue()
+
+        # state we are running then start periodical polling on the queues
+        self.IsRunning = True
+        self.periodic_refresh()
+
+    def PeriodicRefresh(self):
+        """
+            Check every 100 ms if there is something new in the queue.
+        """
+        self.UpdateLog()
+        self.UpdateStatus()
+        if not self.IsRunning:
+            # This is the brutal stop of the system. You may want to do
+            # some cleanup before actually shutting it down.
+            exit(1)
+        self.master.after(100, self.PeriodicRefresh)
+
+    def UpdateLog(self):
+        while self.LOG_queue.qsize():
+            try:
+                msg = self.LOG_queue.get(0)
+                # Check contents of message and do what it says
+                # As a test, we simply print it
+                self.LOG_txt.configure(state='normal')
+                self.LOG_txt.insert(END, msg)
+                self.LOG_txt.configure(state='disabled')
+            except queue.Empty:
+                pass
+
+    def UpdateStatus(self):
+        while self.SATUS_queue.qsize():
+            try:
+                msg = self.SATUS_queue.get(0)
+                self.STATUS_txt.configure(state='normal')
+                if msg == "o":
+                    self.STATUS_txt.insert(END, "o")
+                else:
+                    self.STATUS_txt.delete("0.0", END)
+                    self.STATUS_txt.insert("0.0", msg)
+                self.STATUS_txt.configure(state='disabled')
+            except queue.Empty:
+                pass
+
     def createWidgets(self):
         # self.hi_there = tk.Button(self)
         # self.hi_there["text"] = "Hello World\n(click me)"
@@ -237,32 +286,25 @@ class Application(tk.Frame):
         self.Log("destination folder:%s\n" % self.DST_val.get())
 
     def COPY_cb(self):
+        #start the worker thread
+        self.copy_thread = threading.Thread(target=self.COPY_WorkerThread)
+        self.copy_thread.start()
+
+    def Log(self,val):
+        self.LOG_queue.put(val)
+
+    def Status(self, val):
+        self.STATUS_queue.put(val)
+
+    def UpdateProgress(self):
+        self.STATUS_queue.put("o")
+
+    def COPY_WorkerThread(self):
         src = self.SRC_val.get()
         dst = self.DST_val.get()
         file_to_folder, unique_folders = self.parse_source_folder(src)
         self.Log("%d files found\n" % len(file_to_folder))
         self.Log("%d destination folders(s) to create\n" % len(unique_folders))
-
-    def Log(self,val):
-        self.LOG_txt.configure(state='normal')
-        self.LOG_txt.insert(END,val)
-        self.LOG_txt.configure(state='disabled')
-
-
-    def Status(self, val):
-        self.STATUS_txt.configure(state='normal')
-        self.STATUS_txt.delete("0.0",END)
-        self.STATUS_txt.insert("0.0", val)
-        self.STATUS_txt.configure(state='disabled')
-        self.status_start = len(val)
-        print (self.status_start)
-
-
-    def IncStatus(self):
-        self.STATUS_txt.configure(state='normal')
-        self.STATUS_txt.insert(END, "o")
-        self.STATUS_txt.configure(state='disabled')
-
 
     def parse_source_folder(self,folder):
         """ find jpg files in the input folder
@@ -292,7 +334,7 @@ class Application(tk.Frame):
                 unique_folders.add(destination)
             cnt = cnt + 1
             if (cnt % nb_inc) == 0:
-                self.IncStatus()
+                self.UpdateProgress()
         print("%d files found" % len(jpg_files))
         print("%d destination folders(s) " % len(unique_folders))
 

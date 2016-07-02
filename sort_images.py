@@ -16,6 +16,7 @@ import queue
 from tkinter import *
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import messagebox
 
 # some constants
 
@@ -72,13 +73,14 @@ def parse_source_folder(folder):
     return destination_folders, unique_folders
 
 
-def create_destination_folders(dest_root, unique_destination_folders):
+def create_destination_folders(dest_root, unique_destination_folders, debug=False):
     """ create output directories if needed """
     for folder in unique_destination_folders:
         destination_folder = "%s\%s" % (dest_root, folder)
         if not os.path.exists(destination_folder):
             print("done   : %s" % destination_folder)
-            os.makedirs(destination_folder)
+            if not debug:
+                os.makedirs(destination_folder)
         else:
             print("skipped: %s" % destination_folder)
 
@@ -292,7 +294,8 @@ class Application(tk.Frame):
     def DST_cb(self):
         folder = filedialog.askdirectory(title="Please select Images destination folder",
                                          mustexist=True,
-                                         initialdir=os.path.expanduser('~/.')
+                                         #initialdir=os.path.expanduser('~/.')
+                                         initialdir='D:/sorted'
                                          )
         self.DST_val.set(folder)
         self.Log("destination folder:%s\n" % self.DST_val.get())
@@ -308,17 +311,33 @@ class Application(tk.Frame):
     def Status(self, val):
         self.STATUS_queue.put(val)
 
-    def UpdateProgress(self):
-        self.STATUS_queue.put("o")
+    def UpdateProgress(self,current,max):
+        progress_inc = round(max / 10)
+        if progress_inc == 0:
+            progress_inc = 1
+        if (current % progress_inc) == 0:
+            self.STATUS_queue.put("o")
 
     def COPY_WorkerThread(self):
         src = self.SRC_val.get()
         dst = self.DST_val.get()
+        # validate the arguments
+        if not os.path.exists(src):
+            messagebox.showerror ("Missing Source", "Please select source folder")
+            return
+        if not os.path.exists(dst) :
+            messagebox.showerror ("Missing destination", "Please select destination folder")
+            return
         file_to_folder, unique_folders = self.parse_source_folder(src)
         self.Log("%d files found\n" % len(file_to_folder))
         self.Log("%d destination folders(s) to create\n" % len(unique_folders))
+        for folder in unique_folders:
+            self.Log(" - %s\n" % folder)
 
-    def parse_source_folder(self,folder):
+        self.create_destination_folders(dst, unique_folders,debug=True)
+
+
+    def parse_source_folder(self,folder, verbose = False):
         """ find jpg files in the input folder
         :param folder: folder to parse
         :return: destination_folders : dict of relative destination folder (keyed by file names)
@@ -335,25 +354,38 @@ class Application(tk.Frame):
         destination_folders = dict()
         unique_folders = set()
 
-        nb_inc = round(len(jpg_files)/10)
         cnt = 0
         self.Status("analyzing source folder")
         for file in jpg_files:
             capture_date = get_capture_date(file)
             destination = "%.4d\%.2d" % (capture_date.year, capture_date.month)
             destination_folders[file] = destination
-            self.Log(("%s -> %s\n" % (os.path.basename(file),destination)))
+            if verbose:
+                self.Log(("%s : %s\n" % (os.path.basename(file),destination)))
             if destination not in unique_folders:
                 unique_folders.add(destination)
-            cnt = cnt + 1
-            if (cnt % nb_inc) == 0:
-                self.UpdateProgress()
+            cnt += 1
+            self.UpdateProgress(cnt,len(jpg_files))
         print("%d files found" % len(jpg_files))
         print("%d destination folders(s) " % len(unique_folders))
 
         return destination_folders, unique_folders
 
-
+    def create_destination_folders(self,dest_root, unique_destination_folders, debug=False):
+        """ create output directories if needed """
+        self.Status("Creating destination folder(s)")
+        progress_inc = round(len(unique_destination_folders) / 10)
+        cnt = 0
+        for folder in unique_destination_folders:
+            destination_folder = "%s\%s" % (dest_root, folder)
+            if not os.path.exists(destination_folder):
+                self.Log("done   : %s\n" % destination_folder)
+                if not debug:
+                    os.makedirs(destination_folder)
+            else:
+                self.Log("skipped: %s\n" % destination_folder)
+            cnt += 1
+            self.UpdateProgress(cnt, len(unique_destination_folders))
 
 
 if __name__ == "__main__":

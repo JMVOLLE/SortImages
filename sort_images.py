@@ -309,8 +309,8 @@ class Application(tk.Frame):
         self.ACTION_rb_mv = Radiobutton(self, text='Move', variable=self.ACTION_val, value='MOVE')
         self.ACTION_rb_cp["command"] = self.ACTION_cb
         self.ACTION_rb_mv["command"] = self.ACTION_cb
-        self.ACTION_rb_cp.grid(column=0, row=2)
-        self.ACTION_rb_mv.grid(column=0, row=3)
+        self.ACTION_rb_cp.grid(column=0, row=2,sticky=tk.W)
+        self.ACTION_rb_mv.grid(column=0, row=3,sticky=tk.W)
 
 
         self.COPY_bt = Button(self)

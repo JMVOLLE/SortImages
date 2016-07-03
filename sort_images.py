@@ -125,14 +125,6 @@ class Application(tk.Frame):
                 pass
 
     def createWidgets(self):
-        # self.hi_there = tk.Button(self)
-        # self.hi_there["text"] = "Hello World\n(click me)"
-        # self.hi_there["command"] = self.say_hi
-        # self.hi_there.pack(side="top")
-
-#        self.QUIT = tk.Button(self, text="QUIT", fg="red",
-       #                                     command=self.destroy)
-        #self.QUIT.pack(side="bottom")
 
 
         self.SRC_bt = Button(self)
@@ -179,7 +171,7 @@ class Application(tk.Frame):
         self.LOG_txt.tag_configure('info', foreground='green')
 
         self.OPTION_fr = LabelFrame(self,text="Options")
-        self.OPTION_fr.grid(column=1, row=2, sticky=tk.W+tk.E)
+        self.OPTION_fr.grid(column=0, row=2, columnspan=2, sticky=tk.W+tk.E)
 
         self.ACTION_val = StringVar()
         self.ACTION_val.set('COPY')
@@ -198,7 +190,7 @@ class Application(tk.Frame):
         self.COPY_bt = Button(self)
         self.COPY_bt["text"] =T['COPY_bt_cp'][self.lang]
         self.COPY_bt["command"] = self.COPY_cb
-        self.COPY_bt.grid(column=1, row=3,columnspan=2, sticky=tk.E + tk.W + tk.N +tk.S)
+        self.COPY_bt.grid(column=0, row=3,columnspan=2, sticky=tk.E + tk.W + tk.N +tk.S)
 
     def ACTION_cb(self):
         #print ("action", self.ACTION_val.get())

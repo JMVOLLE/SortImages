@@ -192,6 +192,16 @@ class Application(tk.Frame):
             exit(1)
         self.master.after(100, self.PeriodicRefresh)
 
+    def Log(self,val, type=''):
+        if type == 'I':
+            self.LOG_queue.put("I:%s" % val)
+        elif type == 'W':
+            self.LOG_queue.put("W:%s" %val)
+        elif type == 'E':
+            self.LOG_queue.put("E:%s" %val)
+        else:
+            self.LOG_queue.put(val)
+
     def UpdateLog(self):
         while self.LOG_queue.qsize():
             try:
@@ -199,7 +209,15 @@ class Application(tk.Frame):
                 # Check contents of message and do what it says
                 # As a test, we simply print it
                 self.LOG_txt.configure(state='normal')
-                self.LOG_txt.insert(END, msg)
+                if msg.startswith('E:'):
+                    self.LOG_txt.insert(END, msg[2:],'error')
+                elif msg.startswith('W:'):
+                    self.LOG_txt.insert(END, msg[2:],'warning')
+                elif msg.startswith('I:'):
+                    self.LOG_txt.insert(END, msg[2:],'info')
+                else:
+                    self.LOG_txt.insert(END, msg)
+
                 self.LOG_txt.see(END)
                 self.LOG_txt.configure(state='disabled')
             except queue.Empty:
@@ -273,7 +291,7 @@ class Application(tk.Frame):
         self.DST_entry = Entry(self, textvariable=self.DST_val)
         self.DST_entry.grid(column=1, row=1, sticky='EW')
 
-
+        # scrollbar: http://effbot.org/zone/tkinter-scrollbar-patterns.htm
         self.STATUS_txt = Text(self,height=1)
         self.STATUS_txt.grid(column=0, row=2, columnspan=2)
         self.STATUS_txt.insert("1.0","Waiting for inputs")
@@ -281,6 +299,9 @@ class Application(tk.Frame):
 
         self.LOG_txt =Text(self)
         self.LOG_txt.grid(column=0, row=3,columnspan=2)
+        self.LOG_txt.tag_configure('error', background='red')
+        self.LOG_txt.tag_configure('warning', foreground='red')
+        self.LOG_txt.tag_configure('info', foreground='green')
 
         self.COPY_bt = Button(self)
         self.COPY_bt["text"] = "COPY"
@@ -311,8 +332,7 @@ class Application(tk.Frame):
         self.copy_thread = threading.Thread(target=self.COPY_WorkerThread)
         self.copy_thread.start()
 
-    def Log(self,val):
-        self.LOG_queue.put(val)
+
 
     def Status(self, val):
         self.STATUS_queue.put(val)
@@ -429,17 +449,19 @@ class Application(tk.Frame):
                     self.Log("copying %s -> %s\n" % (os.path.basename(file), destination_folder))
                     copied.append(src_basename)
             else:
-                self.Log("%s skipped : already exists in %s\n" % (src_basename,destination_folder))
+                self.Log("%s skipped : already exists in %s\n" % (src_basename,destination_folder), type='W')
                 skipped.append(src_basename)
             cnt +=1
             self.UpdateProgress(cnt, total)
 
         if move:
-            self.Log("%d files moved\n" %len(moved))
-            self.Log("%d files skipped\n" % len(skipped))
+            self.Log("%d files moved\n" %len(moved),type='I')
         else:
-            self.Log("%d files copied\n" %len(copied))
-            self.Log("%d files skipped\n" % len(skipped))
+            self.Log("%d files copied\n" %len(copied),type='I')
+
+        self.Log("%d files skipped\n" % len(skipped),type='W')
+        for file in skipped:
+            self.Log(" - %s\n" % file, type='W')
 
 
 if __name__ == "__main__":

@@ -386,9 +386,9 @@ if __name__ == "__main__":
         config.read('sort_images.ini')
         lang = config['SETUP']['LANG']
         debug = config.getboolean('SETUP', 'DEBUG')
-    except configparser.Error:
-        lang = 'fr'
-        debug = True
+    except Exception as e:
+        lang = 'en'
+        debug = False
         print ("Error parsing config file\n")
         pass
 

@@ -380,7 +380,12 @@ class Application(tk.Frame):
 
         self.create_destination_folders(dst, unique_folders,debug=True)
 
-        self.move_copy_files(dst, file_to_folder, move=False, debug=True)
+        action = self.ACTION_val.get()
+        if action == 'MOVE':
+            move_arg = True
+        else:
+            move_arg = False
+        self.move_copy_files(dst, file_to_folder, move=move_arg, debug=True)
 
 
     def parse_source_folder(self,folder, verbose = True):

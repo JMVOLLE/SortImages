@@ -409,31 +409,37 @@ class Application(tk.Frame):
             self.Status("Moving files")
         else:
             self.Status("Copying files")
-
+        skipped = []
+        moved = []
+        copied = []
         for file in destination_folders.keys():
             destination_folder = os.path.join(dest_root, destination_folders[file])
+            src_basename = os.path.basename(file)
+            destination_file =os.path.join(destination_folder,src_basename)
+            if not os.path.exists(destination_file):
+                if move:
+                    if not debug:
+                        shutil.move(file, destination_folder)
+                    self.Log("moving %s -> %s\n" % (os.path.basename(file), destination_folder))
+                    moved.append(src_basename)
 
-            #test if file with same name already exists:
-            destination_file =os.path.join(os.path.basename(destination_folder,file)
-            if os.path.exists(destination_file):
-                self.Log("%d files moved" % total)
-
-            if move:
-                if not debug:
-                    shutil.move(file, destination_folder)
-                self.Log("moving %s -> %s\n" % (os.path.basename(file), destination_folder))
-
-            else: #copy
-                if not debug:
-                    shutil.copy(file, destination_folder)
-                self.Log("copying %s -> %s\n" % (os.path.basename(file), destination_folder))
+                else: #copy
+                    if not debug:
+                        shutil.copy(file, destination_folder)
+                    self.Log("copying %s -> %s\n" % (os.path.basename(file), destination_folder))
+                    copied.append(src_basename)
+            else:
+                self.Log("%s skipped : already exists in %s\n" % (src_basename,destination_folder))
+                skipped.append(src_basename)
             cnt +=1
             self.UpdateProgress(cnt, total)
 
         if move:
-            self.Log("%d files moved" %total)
+            self.Log("%d files moved\n" %len(moved))
+            self.Log("%d files skipped\n" % len(skipped))
         else:
-            self.Log("%d files copied" %total)
+            self.Log("%d files copied\n" %len(copied))
+            self.Log("%d files skipped\n" % len(skipped))
 
 
 if __name__ == "__main__":

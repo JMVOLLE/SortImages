@@ -210,17 +210,23 @@ class Application(tk.Frame):
             try:
                 msg = self.STATUS_queue.get(0)
                 self.STATUS_txt.configure(state='normal')
-                if msg == "o":
+                if msg == "+":
+                    # increment by one the counter
                     position = self.STATUS_txt.index("progress")
                     self.STATUS_txt.delete(position)
                     self.STATUS_txt.insert(position, "O")
                     position += "+1c"
                     self.STATUS_txt.mark_set("progress", position)
+                elif msg == "f" :
+                    #display full counter
+                    self.STATUS_txt.delete(self.STATUS_progress_start, END)
+                    self.STATUS_txt.insert(END, "OOOOOOOOOO")
                 else:
                     self.STATUS_txt.delete("0.0", END)
                     self.STATUS_txt.insert("0.0", msg+": ")
                     start = self.STATUS_txt.index("1.end")
                     self.STATUS_txt.mark_set("progress",start)
+                    self.STATUS_progress_start = start
                     self.STATUS_txt.mark_gravity("progress", LEFT)
                     self.STATUS_txt.insert(END, "..........")
 
@@ -312,11 +318,14 @@ class Application(tk.Frame):
         self.STATUS_queue.put(val)
 
     def UpdateProgress(self,current,max):
+        if current >= max:
+            self.STATUS_queue.put("f")
+            return
         progress_inc = round(max / 10)
         if progress_inc == 0:
             progress_inc = 1
         if (current % progress_inc) == 0:
-            self.STATUS_queue.put("o")
+            self.STATUS_queue.put("+")
 
     def COPY_WorkerThread(self):
         src = self.SRC_val.get()
@@ -336,8 +345,10 @@ class Application(tk.Frame):
 
         self.create_destination_folders(dst, unique_folders,debug=True)
 
+        self.move_copy_files(dst, file_to_folder, move=False, debug=True)
 
-    def parse_source_folder(self,folder, verbose = False):
+
+    def parse_source_folder(self,folder, verbose = True):
         """ find jpg files in the input folder
         :param folder: folder to parse
         :return: destination_folders : dict of relative destination folder (keyed by file names)
@@ -358,7 +369,7 @@ class Application(tk.Frame):
         self.Status("analyzing source folder")
         for file in jpg_files:
             capture_date = get_capture_date(file)
-            destination = "%.4d\%.2d" % (capture_date.year, capture_date.month)
+            destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
             destination_folders[file] = destination
             if verbose:
                 self.Log(("%s : %s\n" % (os.path.basename(file),destination)))
@@ -377,15 +388,52 @@ class Application(tk.Frame):
         progress_inc = round(len(unique_destination_folders) / 10)
         cnt = 0
         for folder in unique_destination_folders:
-            destination_folder = "%s\%s" % (dest_root, folder)
+            #destination_folder = "%s\%s" % (dest_root, folder)
+            destination_folder = os.path.join(dest_root,folder)
             if not os.path.exists(destination_folder):
-                self.Log("done   : %s\n" % destination_folder)
+                self.Log("%s created\n" % destination_folder)
                 if not debug:
                     os.makedirs(destination_folder)
             else:
-                self.Log("skipped: %s\n" % destination_folder)
+                self.Log("%s already exists\n" % destination_folder)
             cnt += 1
             self.UpdateProgress(cnt, len(unique_destination_folders))
+
+    def move_copy_files(self,dest_root, destination_folders,move=False,debug=False):
+        """ move files to where they belong
+        :param destination_folders: a file name ordered dict of destination folders
+        """
+        cnt = 0
+        total = len(destination_folders)
+        if move:
+            self.Status("Moving files")
+        else:
+            self.Status("Copying files")
+
+        for file in destination_folders.keys():
+            destination_folder = os.path.join(dest_root, destination_folders[file])
+
+            #test if file with same name already exists:
+            destination_file =os.path.join(os.path.basename(destination_folder,file)
+            if os.path.exists(destination_file):
+                self.Log("%d files moved" % total)
+
+            if move:
+                if not debug:
+                    shutil.move(file, destination_folder)
+                self.Log("moving %s -> %s\n" % (os.path.basename(file), destination_folder))
+
+            else: #copy
+                if not debug:
+                    shutil.copy(file, destination_folder)
+                self.Log("copying %s -> %s\n" % (os.path.basename(file), destination_folder))
+            cnt +=1
+            self.UpdateProgress(cnt, total)
+
+        if move:
+            self.Log("%d files moved" %total)
+        else:
+            self.Log("%d files copied" %total)
 
 
 if __name__ == "__main__":

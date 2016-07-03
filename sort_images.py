@@ -293,20 +293,35 @@ class Application(tk.Frame):
 
         # scrollbar: http://effbot.org/zone/tkinter-scrollbar-patterns.htm
         self.STATUS_txt = Text(self,height=1)
-        self.STATUS_txt.grid(column=0, row=2, columnspan=2)
+        self.STATUS_txt.grid(column=0, row=4, columnspan=2)
         self.STATUS_txt.insert("1.0","Waiting for inputs")
         #self.Status("Waiting for inputs")
 
         self.LOG_txt =Text(self)
-        self.LOG_txt.grid(column=0, row=3,columnspan=2)
+        self.LOG_txt.grid(column=0, row=5,columnspan=2)
         self.LOG_txt.tag_configure('error', background='red')
         self.LOG_txt.tag_configure('warning', foreground='red')
         self.LOG_txt.tag_configure('info', foreground='green')
 
+        self.ACTION_val = StringVar()
+        self.ACTION_val.set('COPY')
+        self.ACTION_rb_cp = Radiobutton(self, text='Copy', variable=self.ACTION_val, value='COPY')
+        self.ACTION_rb_mv = Radiobutton(self, text='Move', variable=self.ACTION_val, value='MOVE')
+        self.ACTION_rb_cp["command"] = self.ACTION_cb
+        self.ACTION_rb_mv["command"] = self.ACTION_cb
+        self.ACTION_rb_cp.grid(column=0, row=2)
+        self.ACTION_rb_mv.grid(column=0, row=3)
+
+
         self.COPY_bt = Button(self)
         self.COPY_bt["text"] = "COPY"
         self.COPY_bt["command"] = self.COPY_cb
-        self.COPY_bt.grid(column=2, row=0, sticky=tk.E + tk.W,rowspan=2)
+        self.COPY_bt.grid(column=1, row=2,rowspan=2, sticky=tk.E + tk.W + tk.N +tk.S)
+
+    def ACTION_cb(self):
+        #print ("action", self.ACTION_val.get())
+        action = self.ACTION_val.get()
+        self.COPY_bt["text"] = action
 
     def SRC_cb(self):
         print("SRC callback")

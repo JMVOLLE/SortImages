@@ -11,6 +11,7 @@ import os
 import time
 import threading
 import queue
+import configparser
 
 # GUI stuff
 from tkinter import *
@@ -18,158 +19,18 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 
+from localisation import *
+
 # some constants
 
 KEY_DATE = 'Image DateTime'
 
 
-def get_capture_date(file_name):
-    """
-    :param file_name: name of a jpeg file
-    :return: date a which the photo was taken
-    """
-    with open(file_name, 'rb') as file:
-
-        # Return Exif tags
-        exif_tags = exifread.process_file(file)
-
-        if KEY_DATE in exif_tags.keys():
-            # print("Key: <%s>, value <%s>" % (key_date, exif_tags[key_date]))
-            str_creation_date = str(exif_tags[KEY_DATE])
-    #        print('Creation date ', str_creation_date)
-            capture_date = datetime.datetime.strptime(str_creation_date, '%Y:%m:%d %H:%M:%S')
-#            print("year:%.4d" % creation_date.year)
-#           print("month:%.2d" % creation_date.month)
-    return capture_date
-
-
-def parse_source_folder(folder):
-    """ find jpg files in the input folder
-    :param folder: folder to parse
-    :return: destination_folders : dict of relative destination folder (keyed by file names)
-    :return: unique_folders : set of relative destination folder
-    """
-
-    # parse the input directory
-
-    jpg_files = glob.glob(folder+"\\*.jpg")
-    jpg_files = jpg_files + glob.glob(folder + "\\*.JPG")
-    jpg_files = jpg_files + glob.glob(folder + "\\*.jpeg")
-
-    # return values
-    destination_folders = dict()
-    unique_folders = set()
-
-    for file in jpg_files:
-        capture_date = get_capture_date(file)
-        destination = "%.4d\%.2d" % (capture_date.year, capture_date.month)
-        destination_folders[file] = destination
-        if destination not in unique_folders:
-            unique_folders.add(destination)
-
-    print("%d files found" % len(jpg_files))
-    print("%d destination folders(s) " % len(unique_folders))
-
-    return destination_folders, unique_folders
-
-
-def create_destination_folders(dest_root, unique_destination_folders, debug=False):
-    """ create output directories if needed """
-    for folder in unique_destination_folders:
-        destination_folder = "%s\%s" % (dest_root, folder)
-        if not os.path.exists(destination_folder):
-            print("done   : %s" % destination_folder)
-            if not debug:
-                os.makedirs(destination_folder)
-        else:
-            print("skipped: %s" % destination_folder)
-
-def create_folders(folders):
-    """ create output directories if needed
-     :param folders: a list of PurePAth folders
-     """
-    for folder in folders:
-        if not os.path.exists(str(folder)):
-            print("done   : %s" % folder)
-            os.makedirs(str(folder))
-        else:
-            print("skipped: %s" %folder)
-
-
-def move_files(dest_root, destination_folders):
-    """ move files to where they belong
-    :param destination_folders: a file name ordered dict of destination folders
-    """
-    for file in destination_folders.keys():
-        destination_folder = "%s\%s" % (dest_root, destination_folders[file])
-        print(" mv %s %s" % (file, destination_folder))
-        shutil.move(file, destination_folder)
-
-
-def command_line_test():
-    src_root = PurePath('d:/test_source')
-    dst_root = PurePath('d:/sorted')
-
-    print ("Source:",src_root)
-    print ("Destination:",dst_root)
-
-    #parse the source folder and retrieve le list of unique folder to create as well as the list of which
-    # source file to mote to which destination folder
-    file_to_folder, unique_folders = parse_source_folder(str(src_root))
-
-    #create the destination folders
-    create_destination_folders(dst_root,unique_folders)
-
-    #move the content where it belongs
-    move_files(dst_root,file_to_folder)
-
-def gui_main():
-    main_window = Tk()
-    main_window.title("Image sorter V1.0");
-
-    #label = Label(main_window, text="=== Image sorter ===")
-
-    #label.pack()
-
-    #http://tkinter.unpythonic.net/wiki/tkFileDialog
-
-    # source and destination widgets are packed in their own frame
-    frame_src = Frame(main_window)
-    frame_src.pack()
-    frame_dst = Frame(main_window)
-    frame_dst.pack()
-
-    src_root = filedialog.askdirectory(title="Please select Images source folder",
-                                    mustexist = True,
-                                    #initialdir=os.path.expanduser('~/.')
-                                    initialdir = "D:/photo_maman_2015_02"
-                                   )
-
-    src_text = Label(frame_src, text= "Source:")
-    src_text.pack(side=LEFT)
-    src_button = Button(frame_src, text="Select source folder")
-    src_button.pack(side=LEFT)
-    src_value = Label(frame_src, text= src_root)
-    src_value.pack(side=LEFT)
-
-    dst_root = filedialog.askdirectory(title="Please select Images source folder",
-                                       mustexist=True,
-                                       initialdir=os.path.expanduser('~/')
-                                       )
-
-
-
-    dst_text = Label(frame_dst, text="Destination:")
-    dst_text.pack(side=LEFT)
-    dst_value = Label(frame_dst, text=dst_root)
-    dst_value.pack(side=LEFT)
-    main_window.mainloop()
-
-
 
 class Application(tk.Frame):
-    def __init__(self, master=None):
+    def __init__(self, master=None, lang='fr'):
         tk.Frame.__init__(self, master)
+        self.lang = lang
         self.grid()
         self.createWidgets()
         # Create queues for updating contrent of STATUS_txt and LOG_txt
@@ -223,6 +84,16 @@ class Application(tk.Frame):
             except queue.Empty:
                 pass
 
+    def UpdateProgress(self,current,max):
+        if current >= max:
+            self.STATUS_queue.put("f")
+            return
+        progress_inc = round(max / 20)
+        if progress_inc == 0:
+            progress_inc = 1
+        if (current % progress_inc) == 0:
+            self.STATUS_queue.put("+")
+
     def UpdateStatus(self):
         while self.STATUS_queue.qsize():
             try:
@@ -238,7 +109,7 @@ class Application(tk.Frame):
                 elif msg == "f" :
                     #display full counter
                     self.STATUS_txt.delete(self.STATUS_progress_start, END)
-                    self.STATUS_txt.insert(END, "OOOOOOOOOO")
+                    self.STATUS_txt.insert(END, "OOOOOOOOOOOOOOOOOOOO")
                 else:
                     self.STATUS_txt.delete("0.0", END)
                     self.STATUS_txt.insert("0.0", msg+": ")
@@ -246,7 +117,7 @@ class Application(tk.Frame):
                     self.STATUS_txt.mark_set("progress",start)
                     self.STATUS_progress_start = start
                     self.STATUS_txt.mark_gravity("progress", LEFT)
-                    self.STATUS_txt.insert(END, "..........")
+                    self.STATUS_txt.insert(END, "....................")
 
                 self.STATUS_txt.configure(state='disabled')
             except queue.Empty:
@@ -258,19 +129,21 @@ class Application(tk.Frame):
         # self.hi_there["command"] = self.say_hi
         # self.hi_there.pack(side="top")
 
-        self.QUIT = tk.Button(self, text="QUIT", fg="red",
-                                            command=self.destroy)
+#        self.QUIT = tk.Button(self, text="QUIT", fg="red",
+       #                                     command=self.destroy)
         #self.QUIT.pack(side="bottom")
 
 
         self.SRC_bt = Button(self)
-        self.SRC_bt["text"] = "Source:"
+
+        self.SRC_bt["text"] = T['SRC_bt'][self.lang]
         self.SRC_bt["command"] = self.SRC_cb
         self.SRC_bt.grid(column = 0, row=0, sticky=tk.E+tk.W)
         self.SRC_txt = Text(self)
 
         self.SRC_val = StringVar()
-        self.SRC_val.set("images source folder")
+        self.SRC_val.set(T['SRC_val'][self.lang])
+
         self.SRC_entry = Entry(self, textvariable=self.SRC_val,width=64)
         self.SRC_entry.grid(column=1, row=0, sticky='EW')
 
@@ -282,19 +155,20 @@ class Application(tk.Frame):
         #self.DST_fr.pack()
 
         self.DST_bt = Button(self)
-        self.DST_bt["text"] = "Destination:"
+        self.DST_bt["text"] = T['DST_bt'][self.lang]
         self.DST_bt["command"] = self.DST_cb
         self.DST_bt.grid(column=0, row=1, sticky='EW')
 
         self.DST_val = StringVar()
-        self.DST_val.set("image destination folder")
+        self.DST_val.set(T['DST_val'][self.lang])
+
         self.DST_entry = Entry(self, textvariable=self.DST_val)
         self.DST_entry.grid(column=1, row=1, sticky='EW')
 
         # scrollbar: http://effbot.org/zone/tkinter-scrollbar-patterns.htm
         self.STATUS_txt = Text(self,height=1)
         self.STATUS_txt.grid(column=0, row=4, columnspan=2)
-        self.STATUS_txt.insert("1.0","Waiting for inputs")
+        self.STATUS_txt.insert("1.0",T['STATUS_txt'][self.lang])
         #self.Status("Waiting for inputs")
 
         self.LOG_txt =Text(self)
@@ -303,25 +177,36 @@ class Application(tk.Frame):
         self.LOG_txt.tag_configure('warning', foreground='red')
         self.LOG_txt.tag_configure('info', foreground='green')
 
+        self.OPTION_fr = LabelFrame(self,text="Options")
+        self.OPTION_fr.grid(column=1, row=2, sticky=tk.W+tk.E)
+
         self.ACTION_val = StringVar()
         self.ACTION_val.set('COPY')
-        self.ACTION_rb_cp = Radiobutton(self, text='Copy', variable=self.ACTION_val, value='COPY')
-        self.ACTION_rb_mv = Radiobutton(self, text='Move', variable=self.ACTION_val, value='MOVE')
+        self.ACTION_rb_cp = Radiobutton(self.OPTION_fr, text=T['ACTION_rb_cp'][self.lang], variable=self.ACTION_val, value='COPY')
+        self.ACTION_rb_mv = Radiobutton(self.OPTION_fr, text=T['ACTION_rb_mv'][self.lang], variable=self.ACTION_val, value='MOVE')
         self.ACTION_rb_cp["command"] = self.ACTION_cb
         self.ACTION_rb_mv["command"] = self.ACTION_cb
-        self.ACTION_rb_cp.grid(column=0, row=2,sticky=tk.W)
-        self.ACTION_rb_mv.grid(column=0, row=3,sticky=tk.W)
+        self.ACTION_rb_cp.pack(side=LEFT)
+        self.ACTION_rb_mv.pack(side=LEFT)
+
+
+        #self.ACTION_rb_cp.grid(column=1, row=2,sticky=tk.W)
+        #self.ACTION_rb_mv.grid(column=1, row=3,sticky=tk.W)
 
 
         self.COPY_bt = Button(self)
-        self.COPY_bt["text"] = "COPY"
+        self.COPY_bt["text"] =T['COPY_bt_cp'][self.lang]
         self.COPY_bt["command"] = self.COPY_cb
-        self.COPY_bt.grid(column=1, row=2,rowspan=2, sticky=tk.E + tk.W + tk.N +tk.S)
+        self.COPY_bt.grid(column=1, row=3,columnspan=2, sticky=tk.E + tk.W + tk.N +tk.S)
 
     def ACTION_cb(self):
         #print ("action", self.ACTION_val.get())
         action = self.ACTION_val.get()
-        self.COPY_bt["text"] = action
+        if action == 'COPY':
+            self.COPY_bt["text"] = T['COPY_bt_cp'][self.lang]
+        else:
+            self.COPY_bt["text"] = T['COPY_bt_mv'][self.lang]
+
 
     def SRC_cb(self):
         print("SRC callback")
@@ -340,7 +225,7 @@ class Application(tk.Frame):
                                          initialdir='D:/sorted'
                                          )
         self.DST_val.set(folder)
-        self.Log("destination folder:%s\n" % self.DST_val.get())
+        self.Log("destination folder: <%s>\n" % self.DST_val.get())
 
     def COPY_cb(self):
         #start the worker thread
@@ -352,15 +237,6 @@ class Application(tk.Frame):
     def Status(self, val):
         self.STATUS_queue.put(val)
 
-    def UpdateProgress(self,current,max):
-        if current >= max:
-            self.STATUS_queue.put("f")
-            return
-        progress_inc = round(max / 10)
-        if progress_inc == 0:
-            progress_inc = 1
-        if (current % progress_inc) == 0:
-            self.STATUS_queue.put("+")
 
     def COPY_WorkerThread(self):
         src = self.SRC_val.get()
@@ -387,6 +263,23 @@ class Application(tk.Frame):
             move_arg = False
         self.move_copy_files(dst, file_to_folder, move=move_arg, debug=True)
 
+    def get_capture_date(self,file_name):
+        """
+        :param file_name: name of a jpeg file
+        :return: date a which the photo was taken
+        """
+        with open(file_name, 'rb') as file:
+            # Return Exif tags
+            exif_tags = exifread.process_file(file)
+
+            if KEY_DATE in exif_tags.keys():
+                # print("Key: <%s>, value <%s>" % (key_date, exif_tags[key_date]))
+                str_creation_date = str(exif_tags[KEY_DATE])
+                #        print('Creation date ', str_creation_date)
+                capture_date = datetime.datetime.strptime(str_creation_date, '%Y:%m:%d %H:%M:%S')
+                #            print("year:%.4d" % creation_date.year)
+                #           print("month:%.2d" % creation_date.month)
+        return capture_date
 
     def parse_source_folder(self,folder, verbose = True):
         """ find jpg files in the input folder
@@ -408,7 +301,7 @@ class Application(tk.Frame):
         cnt = 0
         self.Status("analyzing source folder")
         for file in jpg_files:
-            capture_date = get_capture_date(file)
+            capture_date = self.get_capture_date(file)
             destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
             destination_folders[file] = destination
             if verbose:
@@ -485,9 +378,19 @@ class Application(tk.Frame):
 
 
 if __name__ == "__main__":
+
+    #check for configuration file
+    config = configparser.ConfigParser()
+    try:
+        config.read('sort_images.ini')
+        lang = config['SETUP']['LANG']
+    except configparser.Error:
+        lang = 'fr'
+        pass
+
     root = tk.Tk()
     root.title("Sort Images V1.0")
-    app = Application(master=root)
+    app = Application(master=root,lang=lang)
     app.mainloop()
 
 

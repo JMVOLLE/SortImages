@@ -28,9 +28,10 @@ KEY_DATE = 'Image DateTime'
 
 
 class Application(tk.Frame):
-    def __init__(self, master=None, lang='fr'):
+    def __init__(self, master=None, lang='fr', debug=False):
         tk.Frame.__init__(self, master)
         self.lang = lang
+        self.debug = debug
         self.grid()
         self.createWidgets()
         # Create queues for updating contrent of STATUS_txt and LOG_txt
@@ -210,22 +211,22 @@ class Application(tk.Frame):
 
     def SRC_cb(self):
         print("SRC callback")
-        folder = filedialog.askdirectory(title="Please select Images source folder",
+        folder = filedialog.askdirectory(title=T['SRC_cb_dlg'][self.lang],
                                            mustexist=True,
                                          initialdir="D:/photo_maman_2015_02 - Copie"
                                            )
         self.SRC_val.set(folder)
 
-        self.Log("source folder: <%s>\n" %self.SRC_val.get())
+        self.Log("%s: <%s>\n" %(T['SRC_cb_log'][self.lang], self.SRC_val.get()))
 
     def DST_cb(self):
-        folder = filedialog.askdirectory(title="Please select Images destination folder",
+        folder = filedialog.askdirectory(title=T['DST_cb_dlg'][self.lang],
                                          mustexist=True,
                                          #initialdir=os.path.expanduser('~/.')
                                          initialdir='D:/sorted'
                                          )
         self.DST_val.set(folder)
-        self.Log("destination folder: <%s>\n" % self.DST_val.get())
+        self.Log("%s: <%s>\n" % (T['DST_cb_log'][self.lang], self.DST_val.get()))
 
     def COPY_cb(self):
         #start the worker thread
@@ -243,25 +244,25 @@ class Application(tk.Frame):
         dst = self.DST_val.get()
         # validate the arguments
         if not os.path.exists(src):
-            messagebox.showerror ("Missing Source", "Please select source folder")
+            messagebox.showerror (T['missing_src'][self.lang], T['SRC_cb_dlg'][self.lang])
             return
         if not os.path.exists(dst) :
-            messagebox.showerror ("Missing destination", "Please select destination folder")
+            messagebox.showerror (T['missing_dst'][self.lang], T['DST_cb_dlg'][self.lang])
             return
         file_to_folder, unique_folders = self.parse_source_folder(src)
-        self.Log("%d files found\n" % len(file_to_folder))
-        self.Log("%d destination folders(s) to create\n" % len(unique_folders))
+        self.Log("%d %s" % (len(file_to_folder),T['log1'][self.lang]))
+        self.Log("%d %s" % (len(unique_folders),T['log2'][self.lang]))
         for folder in unique_folders:
             self.Log(" - %s\n" % folder)
 
-        self.create_destination_folders(dst, unique_folders,debug=True)
+        self.create_destination_folders(dst, unique_folders,debug=self.debug)
 
         action = self.ACTION_val.get()
         if action == 'MOVE':
             move_arg = True
         else:
             move_arg = False
-        self.move_copy_files(dst, file_to_folder, move=move_arg, debug=True)
+        self.move_copy_files(dst, file_to_folder, move=move_arg, debug=self.debug)
 
     def get_capture_date(self,file_name):
         """
@@ -299,7 +300,7 @@ class Application(tk.Frame):
         unique_folders = set()
 
         cnt = 0
-        self.Status("analyzing source folder")
+        self.Status(T['status1'][self.lang])
         for file in jpg_files:
             capture_date = self.get_capture_date(file)
             destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
@@ -317,18 +318,18 @@ class Application(tk.Frame):
 
     def create_destination_folders(self,dest_root, unique_destination_folders, debug=False):
         """ create output directories if needed """
-        self.Status("Creating destination folder(s)")
+        self.Status(T['status2'][self.lang])
         progress_inc = round(len(unique_destination_folders) / 10)
         cnt = 0
         for folder in unique_destination_folders:
             #destination_folder = "%s\%s" % (dest_root, folder)
             destination_folder = os.path.join(dest_root,folder)
             if not os.path.exists(destination_folder):
-                self.Log("%s created\n" % destination_folder)
+                self.Log("%s %s\n" % (destination_folder,T['log3'][self.lang] ))
                 if not debug:
                     os.makedirs(destination_folder)
             else:
-                self.Log("%s already exists\n" % destination_folder)
+                self.Log("%s %s\n" % (destination_folder, T['log4'][self.lang]))
             cnt += 1
             self.UpdateProgress(cnt, len(unique_destination_folders))
 
@@ -339,9 +340,9 @@ class Application(tk.Frame):
         cnt = 0
         total = len(destination_folders)
         if move:
-            self.Status("Moving files")
+            self.Status(T['status3'][self.lang])
         else:
-            self.Status("Copying files")
+            self.Status(T['status4'][self.lang])
         skipped = []
         moved = []
         copied = []
@@ -353,26 +354,26 @@ class Application(tk.Frame):
                 if move:
                     if not debug:
                         shutil.move(file, destination_folder)
-                    self.Log("moving %s -> %s\n" % (os.path.basename(file), destination_folder))
+                    self.Log("%s %s -> %s\n" % (T['log5'][self.lang],os.path.basename(file), destination_folder))
                     moved.append(src_basename)
 
                 else: #copy
                     if not debug:
                         shutil.copy(file, destination_folder)
-                    self.Log("copying %s -> %s\n" % (os.path.basename(file), destination_folder))
+                    self.Log("%s %s -> %s\n" % (T['log6'][self.lang],os.path.basename(file), destination_folder))
                     copied.append(src_basename)
             else:
-                self.Log("%s skipped : already exists in %s\n" % (src_basename,destination_folder), type='W')
+                self.Log("%s %s %s\n" % (src_basename,T['log7'][self.lang],destination_folder), type='W')
                 skipped.append(src_basename)
             cnt +=1
             self.UpdateProgress(cnt, total)
 
         if move:
-            self.Log("%d files moved\n" %len(moved),type='I')
+            self.Log("%d %s\n" %(len(moved),T['log8'][self.lang]),type='I')
         else:
-            self.Log("%d files copied\n" %len(copied),type='I')
+            self.Log("%d %s\n" % (len(copied), T['log9'][self.lang]), type='I')
 
-        self.Log("%d files skipped\n" % len(skipped),type='W')
+        self.Log("%d %s\n" % (len(skipped), T['log10'][self.lang]),type='W')
         for file in skipped:
             self.Log(" - %s\n" % file, type='W')
 
@@ -384,13 +385,20 @@ if __name__ == "__main__":
     try:
         config.read('sort_images.ini')
         lang = config['SETUP']['LANG']
+        debug = config.getboolean('SETUP', 'DEBUG')
     except configparser.Error:
         lang = 'fr'
+        debug = True
+        print ("Error parsing config file\n")
         pass
 
     root = tk.Tk()
-    root.title("Sort Images V1.0")
-    app = Application(master=root,lang=lang)
+
+    if debug:
+        root.title("Sort Images V1.0-Debug")
+    else:
+        root.title("Sort Images V1.0")
+    app = Application(master=root,lang=lang,debug=debug)
     app.mainloop()
 
 

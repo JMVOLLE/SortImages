@@ -33,6 +33,5 @@ T = {
     'status3': {'en': 'Moving images', 'fr': 'Déplacement des images'},
     'status4': {'en': 'Copying files', 'fr': 'Recopie des images'},
     '': {'en': '', 'fr': ''},
-    '': {'en': '', 'fr': ''},
 }
 

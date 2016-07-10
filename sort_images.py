@@ -28,19 +28,64 @@ KEY_DATE = 'Image DateTime'
 
 
 class Application(tk.Frame):
-    def __init__(self, master=None, lang='fr', debug=False):
+    def __init__(self, master=None):
         tk.Frame.__init__(self, master)
-        self.lang = lang
-        self.debug = debug
+
+        # retrieve config based information
+        self.ReadConfig()
+
+        self.root = master
+        if self.debug:
+            self.root.title("Sort Images V1.0-Debug")
+        else:
+            self.root.title("Sort Images V1.0")
+
         self.grid()
         self.createWidgets()
         # Create queues for updating contrent of STATUS_txt and LOG_txt
         self.LOG_queue = queue.Queue()
         self.STATUS_queue = queue.Queue()
 
+
+        # add handler on windows closing event
+
+        self.root.protocol("WM_DELETE_WINDOW", self.WM_DELETE_WINDOW_cb)
         # state we are running then start periodical polling on the queues
-        self.IsRunning = True
         self.PeriodicRefresh()
+
+    def WM_DELETE_WINDOW_cb(self):
+        # save the src and dst for next call
+        config = configparser.ConfigParser()
+        print("closing")
+        try:
+            #read again the original config
+            config.read('sort_images.ini')
+
+            #create or add HISTORY section
+            config['HISTORY']['SRC'] = self.src
+            config['HISTORY']['DST'] = self.src
+
+            config.write('sort_images.ini')
+        except Exception as e:
+            print ("failed to read ini file")
+            pass
+
+        self.root.destroy()
+
+    def ReadConfig(self):
+        config = configparser.ConfigParser()
+        try:
+            config.read('sort_images.ini')
+            setup = config['SETUP']
+            self.lang = setup.get('LANG','en')
+            self.debug = setup.getboolean('DEBUG', False)
+            
+        except Exception as e:
+            self.lang = 'en'
+            self.debug = False
+            print ("Error parsing config file\n")
+            pass
+
 
     def PeriodicRefresh(self):
         """
@@ -48,10 +93,6 @@ class Application(tk.Frame):
         """
         self.UpdateLog()
         self.UpdateStatus()
-        if not self.IsRunning:
-            # This is the brutal stop of the system. You may want to do
-            # some cleanup before actually shutting it down.
-            exit(1)
         self.master.after(100, self.PeriodicRefresh)
 
     def Log(self,val, type=''):
@@ -241,6 +282,8 @@ class Application(tk.Frame):
         if not os.path.exists(dst) :
             messagebox.showerror (T['missing_dst'][self.lang], T['DST_cb_dlg'][self.lang])
             return
+        self.src = src
+        self.dst = dst
         file_to_folder, unique_folders = self.parse_source_folder(src)
         self.Log("%d %s" % (len(file_to_folder),T['log1'][self.lang]))
         self.Log("%d %s" % (len(unique_folders),T['log2'][self.lang]))
@@ -372,25 +415,9 @@ class Application(tk.Frame):
 
 if __name__ == "__main__":
 
-    #check for configuration file
-    config = configparser.ConfigParser()
-    try:
-        config.read('sort_images.ini')
-        lang = config['SETUP']['LANG']
-        debug = config.getboolean('SETUP', 'DEBUG')
-    except Exception as e:
-        lang = 'en'
-        debug = False
-        print ("Error parsing config file\n")
-        pass
-
     root = tk.Tk()
 
-    if debug:
-        root.title("Sort Images V1.0-Debug")
-    else:
-        root.title("Sort Images V1.0")
-    app = Application(master=root,lang=lang,debug=debug)
+    app = Application(master=root)
     app.mainloop()
 
 

@@ -32,7 +32,7 @@ class Application(tk.Frame):
         tk.Frame.__init__(self, master)
 
         # retrieve config based information
-        self.ReadConfig()
+        self.config = self.ReadConfig()
 
         self.root = master
         if self.debug:
@@ -55,19 +55,23 @@ class Application(tk.Frame):
 
     def WM_DELETE_WINDOW_cb(self):
         # save the src and dst for next call
-        config = configparser.ConfigParser()
+        #config = configparser.ConfigParser()
         print("closing")
         try:
             #read again the original config
-            config.read('sort_images.ini')
+            #config.read('sort_images.ini')
+            if self.config is not None:
+                #create or add HISTORY section
+                if self.config.has_section('HISTORY') is not True:
+                    self.config.add_section('HISTORY')
+                history = self.config['HISTORY']
+                history['SRC'] = self.src
+                history['DST'] = self.dst
 
-            #create or add HISTORY section
-            config['HISTORY']['SRC'] = self.src
-            config['HISTORY']['DST'] = self.src
-
-            config.write('sort_images.ini')
+                with open('sort_images.ini', 'w') as configfile:
+                    self.config.write(configfile)
         except Exception as e:
-            print ("failed to read ini file")
+            print ("failed to save ini file")
             pass
 
         self.root.destroy()
@@ -79,12 +83,20 @@ class Application(tk.Frame):
             setup = config['SETUP']
             self.lang = setup.get('LANG','en')
             self.debug = setup.getboolean('DEBUG', False)
-            
+            if config.has_section('HISTORY'):
+                history = config['HISTORY']
+                self.src = history['SRC']
+                self.dst = history['DST']
+            else:
+                self.src = os.path.expanduser('~/.')
+                self.dst = os.path.expanduser('~/.')
+            return config
         except Exception as e:
             self.lang = 'en'
             self.debug = False
             print ("Error parsing config file\n")
             pass
+        return None
 
 
     def PeriodicRefresh(self):
@@ -246,9 +258,10 @@ class Application(tk.Frame):
         print("SRC callback")
         folder = filedialog.askdirectory(title=T['SRC_cb_dlg'][self.lang],
                                            mustexist=True,
-                                         initialdir="D:/photo_maman_2015_02 - Copie"
+                                         initialdir=self.src
                                            )
         self.SRC_val.set(folder)
+        self.src = folder
 
         self.Log("%s: <%s>\n" %(T['SRC_cb_log'][self.lang], self.SRC_val.get()))
 
@@ -256,9 +269,10 @@ class Application(tk.Frame):
         folder = filedialog.askdirectory(title=T['DST_cb_dlg'][self.lang],
                                          mustexist=True,
                                          #initialdir=os.path.expanduser('~/.')
-                                         initialdir='D:/sorted'
+                                         initialdir=self.dst
                                          )
         self.DST_val.set(folder)
+        self.dst = folder
         self.Log("%s: <%s>\n" % (T['DST_cb_log'][self.lang], self.DST_val.get()))
 
     def COPY_cb(self):
@@ -275,6 +289,7 @@ class Application(tk.Frame):
     def COPY_WorkerThread(self):
         src = self.SRC_val.get()
         dst = self.DST_val.get()
+
         # validate the arguments
         if not os.path.exists(src):
             messagebox.showerror (T['missing_src'][self.lang], T['SRC_cb_dlg'][self.lang])

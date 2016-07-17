@@ -18,7 +18,7 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 
-from localisation import R
+from resources import R
 
 # some constants
 _KEY_DATE = 'Image DateTime'

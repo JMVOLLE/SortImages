@@ -3,6 +3,8 @@ Copyright 2016 Jean-Marc Volle
 License: Apache-2.0
 """
 
+__version__='1.0.0'
+
 import exifread
 import datetime
 import glob
@@ -22,7 +24,6 @@ from resources import R
 
 # some constants
 _KEY_DATE = 'Image DateTime'
-_REVISION = "V1.0.0"
 __copyright__ = "Copyright 2016 Jean-Marc Volle"
 
 class SortImages(tk.Frame):
@@ -38,9 +39,9 @@ class SortImages(tk.Frame):
         self.T = R.T(self.lang)
 
         self.root = master
-        title = "Sort Images " + _REVISION
+        title = "Sort Images "
         if self.debug:
-            title += "-Debug"
+            title += "- Debug"
         self.root.title(title)
 
         self.grid()
@@ -193,24 +194,36 @@ class SortImages(tk.Frame):
 
     def display_about(self):
         about_txt = """
-        SortImage Revision %s
+        Sort Images Revision %s
         %s
-        """ % (_REVISION, __copyright__)
+
+        You can fork me on github:
+        https://github.com/JMVOLLE/SortImages
+
+        uses fonctions from:
+         - %s (%s)
+        """ % (__version__, __copyright__,"exifread",'https://github.com/ianare/exif-py')
         messagebox.showinfo(title=self.T['about'],message=about_txt)
 
     def create_menubar(self):
-        menubar = Menu(self.root)
-        helpmenu = Menu(menubar, tearoff=0)
-        helpmenu.add_command(label=self.T['about'], command=self.display_about)
-        menubar.add_cascade(label=self.T['help'], menu=helpmenu)
+        menu_bar = Menu(self.root)
 
-        self.root.config(menu=menubar)
+        file_menu = Menu(menu_bar, tearoff=0)
+        file_menu.add_command(label=self.T['quit'], command=self.WM_DELETE_WINDOW_cb)
+        menu_bar.add_cascade(label=self.T['file'], menu=file_menu)
+
+
+        help_menu = Menu(menu_bar, tearoff=0)
+        help_menu.add_command(label=self.T['about'], command=self.display_about)
+        menu_bar.add_cascade(label=self.T['help'], menu=help_menu)
+
+        self.root.config(menu=menu_bar)
 
     def create_ui(self):
         """ Create the UI. All widgets are instanciated here"""
         self.create_menubar()
-        self.SRC_bt = Button(self)
 
+        self.SRC_bt = Button(self)
         self.SRC_bt["text"] = self.T['SRC_bt']
         self.SRC_bt["command"] = self.SRC_cb
         self.SRC_bt.grid(column = 0, row=0, sticky=tk.E+tk.W)

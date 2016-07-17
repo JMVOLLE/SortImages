@@ -1,14 +1,13 @@
-# dependencies
-from _ast import Str
+""" Photos sorting application using EXIF capture date
+Copyright 2016 Jean-Marc Volle
+License: Apache-2.0
+"""
 
 import exifread
 import datetime
 import glob
-from pathlib import Path
-from pathlib import PurePath
 import shutil
 import os
-import time
 import threading
 import queue
 import configparser
@@ -19,7 +18,7 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 
-from localisation import *
+from localisation import R
 
 # some constants
 
@@ -27,12 +26,15 @@ KEY_DATE = 'Image DateTime'
 
 
 
-class Application(tk.Frame):
+class SortImages(tk.Frame):
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
 
         # retrieve config based information
         self.config = self.ReadConfig()
+
+        #load translations:
+        self.T = R.T(self.lang)
 
         self.root = master
         if self.debug:
@@ -182,13 +184,13 @@ class Application(tk.Frame):
 
         self.SRC_bt = Button(self)
 
-        self.SRC_bt["text"] = T['SRC_bt'][self.lang]
+        self.SRC_bt["text"] = self.T['SRC_bt']
         self.SRC_bt["command"] = self.SRC_cb
         self.SRC_bt.grid(column = 0, row=0, sticky=tk.E+tk.W)
         self.SRC_txt = Text(self)
 
         self.SRC_val = StringVar()
-        self.SRC_val.set(T['SRC_val'][self.lang])
+        self.SRC_val.set(self.T['SRC_val'])
 
         self.SRC_entry = Entry(self, textvariable=self.SRC_val,width=64)
         self.SRC_entry.grid(column=1, row=0, sticky='EW')
@@ -201,12 +203,12 @@ class Application(tk.Frame):
         #self.DST_fr.pack()
 
         self.DST_bt = Button(self)
-        self.DST_bt["text"] = T['DST_bt'][self.lang]
+        self.DST_bt["text"] = self.T['DST_bt']
         self.DST_bt["command"] = self.DST_cb
         self.DST_bt.grid(column=0, row=1, sticky='EW')
 
         self.DST_val = StringVar()
-        self.DST_val.set(T['DST_val'][self.lang])
+        self.DST_val.set(self.T['DST_val'])
 
         self.DST_entry = Entry(self, textvariable=self.DST_val)
         self.DST_entry.grid(column=1, row=1, sticky='EW')
@@ -214,7 +216,7 @@ class Application(tk.Frame):
         # scrollbar: http://effbot.org/zone/tkinter-scrollbar-patterns.htm
         self.STATUS_txt = Text(self,height=1)
         self.STATUS_txt.grid(column=0, row=4, columnspan=2)
-        self.STATUS_txt.insert("1.0",T['STATUS_txt'][self.lang])
+        self.STATUS_txt.insert("1.0",self.T['STATUS_txt'])
         #self.Status("Waiting for inputs")
 
         self.LOG_txt =Text(self)
@@ -228,8 +230,8 @@ class Application(tk.Frame):
 
         self.ACTION_val = StringVar()
         self.ACTION_val.set('COPY')
-        self.ACTION_rb_cp = Radiobutton(self.OPTION_fr, text=T['ACTION_rb_cp'][self.lang], variable=self.ACTION_val, value='COPY')
-        self.ACTION_rb_mv = Radiobutton(self.OPTION_fr, text=T['ACTION_rb_mv'][self.lang], variable=self.ACTION_val, value='MOVE')
+        self.ACTION_rb_cp = Radiobutton(self.OPTION_fr, text=self.T['ACTION_rb_cp'], variable=self.ACTION_val, value='COPY')
+        self.ACTION_rb_mv = Radiobutton(self.OPTION_fr, text=self.T['ACTION_rb_mv'], variable=self.ACTION_val, value='MOVE')
         self.ACTION_rb_cp["command"] = self.ACTION_cb
         self.ACTION_rb_mv["command"] = self.ACTION_cb
         self.ACTION_rb_cp.pack(side=LEFT)
@@ -241,7 +243,7 @@ class Application(tk.Frame):
 
 
         self.COPY_bt = Button(self)
-        self.COPY_bt["text"] =T['COPY_bt_cp'][self.lang]
+        self.COPY_bt["text"] =self.T['COPY_bt_cp']
         self.COPY_bt["command"] = self.COPY_cb
         self.COPY_bt.grid(column=0, row=3,columnspan=2, sticky=tk.E + tk.W + tk.N +tk.S)
 
@@ -249,31 +251,31 @@ class Application(tk.Frame):
         #print ("action", self.ACTION_val.get())
         action = self.ACTION_val.get()
         if action == 'COPY':
-            self.COPY_bt["text"] = T['COPY_bt_cp'][self.lang]
+            self.COPY_bt["text"] = self.T['COPY_bt_cp']
         else:
-            self.COPY_bt["text"] = T['COPY_bt_mv'][self.lang]
+            self.COPY_bt["text"] = self.T['COPY_bt_mv']
 
 
     def SRC_cb(self):
         print("SRC callback")
-        folder = filedialog.askdirectory(title=T['SRC_cb_dlg'][self.lang],
+        folder = filedialog.askdirectory(title=self.T['SRC_cb_dlg'],
                                            mustexist=True,
                                          initialdir=self.src
                                            )
         self.SRC_val.set(folder)
         self.src = folder
 
-        self.Log("%s: <%s>\n" %(T['SRC_cb_log'][self.lang], self.SRC_val.get()))
+        self.Log("%s: <%s>\n" %(self.T['SRC_cb_log'], self.SRC_val.get()))
 
     def DST_cb(self):
-        folder = filedialog.askdirectory(title=T['DST_cb_dlg'][self.lang],
+        folder = filedialog.askdirectory(title=self.T['DST_cb_dlg'],
                                          mustexist=True,
                                          #initialdir=os.path.expanduser('~/.')
                                          initialdir=self.dst
                                          )
         self.DST_val.set(folder)
         self.dst = folder
-        self.Log("%s: <%s>\n" % (T['DST_cb_log'][self.lang], self.DST_val.get()))
+        self.Log("%s: <%s>\n" % (self.T['DST_cb_log'], self.DST_val.get()))
 
     def COPY_cb(self):
         #start the worker thread
@@ -292,16 +294,16 @@ class Application(tk.Frame):
 
         # validate the arguments
         if not os.path.exists(src):
-            messagebox.showerror (T['missing_src'][self.lang], T['SRC_cb_dlg'][self.lang])
+            messagebox.showerror (self.T['missing_src'], self.T['SRC_cb_dlg'])
             return
         if not os.path.exists(dst) :
-            messagebox.showerror (T['missing_dst'][self.lang], T['DST_cb_dlg'][self.lang])
+            messagebox.showerror (self.T['missing_dst'], self.T['DST_cb_dlg'])
             return
         self.src = src
         self.dst = dst
         file_to_folder, unique_folders = self.parse_source_folder(src)
-        self.Log("%d %s" % (len(file_to_folder),T['log1'][self.lang]))
-        self.Log("%d %s" % (len(unique_folders),T['log2'][self.lang]))
+        self.Log("%d %s" % (len(file_to_folder),self.T['log1']))
+        self.Log("%d %s" % (len(unique_folders),self.T['log2']))
         for folder in unique_folders:
             self.Log(" - %s\n" % folder)
 
@@ -321,7 +323,7 @@ class Application(tk.Frame):
         """
         with open(file_name, 'rb') as file:
             # Return Exif tags
-            exif_tags = exifread.process_file(file)
+            exif_tags = exifread.process_file(file,stop_tag=KEY_DATE)
 
             if KEY_DATE in exif_tags.keys():
                 # print("Key: <%s>, value <%s>" % (key_date, exif_tags[key_date]))
@@ -350,7 +352,7 @@ class Application(tk.Frame):
         unique_folders = set()
 
         cnt = 0
-        self.Status(T['status1'][self.lang])
+        self.Status(self.T['status1'])
         for file in jpg_files:
             capture_date = self.get_capture_date(file)
             destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
@@ -368,18 +370,18 @@ class Application(tk.Frame):
 
     def create_destination_folders(self,dest_root, unique_destination_folders, debug=False):
         """ create output directories if needed """
-        self.Status(T['status2'][self.lang])
+        self.Status(self.T['status2'])
         progress_inc = round(len(unique_destination_folders) / 10)
         cnt = 0
         for folder in unique_destination_folders:
             #destination_folder = "%s\%s" % (dest_root, folder)
             destination_folder = os.path.join(dest_root,folder)
             if not os.path.exists(destination_folder):
-                self.Log("%s %s\n" % (destination_folder,T['log3'][self.lang] ))
+                self.Log("%s %s\n" % (destination_folder,self.T['log3'] ))
                 if not debug:
                     os.makedirs(destination_folder)
             else:
-                self.Log("%s %s\n" % (destination_folder, T['log4'][self.lang]))
+                self.Log("%s %s\n" % (destination_folder, self.T['log4']))
             cnt += 1
             self.UpdateProgress(cnt, len(unique_destination_folders))
 
@@ -390,9 +392,9 @@ class Application(tk.Frame):
         cnt = 0
         total = len(destination_folders)
         if move:
-            self.Status(T['status3'][self.lang])
+            self.Status(self.T['status3'])
         else:
-            self.Status(T['status4'][self.lang])
+            self.Status(self.T['status4'])
         skipped = []
         moved = []
         copied = []
@@ -404,26 +406,26 @@ class Application(tk.Frame):
                 if move:
                     if not debug:
                         shutil.move(file, destination_folder)
-                    self.Log("%s %s -> %s\n" % (T['log5'][self.lang],os.path.basename(file), destination_folder))
+                    self.Log("%s %s -> %s\n" % (self.T['log5'],os.path.basename(file), destination_folder))
                     moved.append(src_basename)
 
                 else: #copy
                     if not debug:
                         shutil.copy(file, destination_folder)
-                    self.Log("%s %s -> %s\n" % (T['log6'][self.lang],os.path.basename(file), destination_folder))
+                    self.Log("%s %s -> %s\n" % (self.T['log6'],os.path.basename(file), destination_folder))
                     copied.append(src_basename)
             else:
-                self.Log("%s %s %s\n" % (src_basename,T['log7'][self.lang],destination_folder), type='W')
+                self.Log("%s %s %s\n" % (src_basename,self.T['log7'],destination_folder), type='W')
                 skipped.append(src_basename)
             cnt +=1
             self.UpdateProgress(cnt, total)
 
         if move:
-            self.Log("%d %s\n" %(len(moved),T['log8'][self.lang]),type='I')
+            self.Log("%d %s\n" %(len(moved),self.T['log8']),type='I')
         else:
-            self.Log("%d %s\n" % (len(copied), T['log9'][self.lang]), type='I')
+            self.Log("%d %s\n" % (len(copied), self.T['log9']), type='I')
 
-        self.Log("%d %s\n" % (len(skipped), T['log10'][self.lang]),type='W')
+        self.Log("%d %s\n" % (len(skipped), self.T['log10']),type='W')
         for file in skipped:
             self.Log(" - %s\n" % file, type='W')
 
@@ -432,7 +434,7 @@ if __name__ == "__main__":
 
     root = tk.Tk()
 
-    app = Application(master=root)
+    app = SortImages(master=root)
     app.mainloop()
 
 

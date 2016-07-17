@@ -22,7 +22,7 @@ from localisation import R
 
 # some constants
 _KEY_DATE = 'Image DateTime'
-
+_REVISION = "V1.0.0"
 
 
 class SortImages(tk.Frame):
@@ -38,10 +38,10 @@ class SortImages(tk.Frame):
         self.T = R.T(self.lang)
 
         self.root = master
+        title = "Sort Images " + _REVISION
         if self.debug:
-            self.root.title("Sort Images V1.0-Debug")
-        else:
-            self.root.title("Sort Images V1.0")
+            title += "-Debug"
+        self.root.title(title)
 
         self.grid()
         self.create_ui()
@@ -50,8 +50,8 @@ class SortImages(tk.Frame):
         self.LOG_queue = queue.Queue()
         self.STATUS_queue = queue.Queue()
 
-
         # add handler on windows closing event
+        self.copymove_thread = None
         self.root.protocol("WM_DELETE_WINDOW", self.WM_DELETE_WINDOW_cb)
 
         # state we are running then start periodical polling on the queues
@@ -67,7 +67,7 @@ class SortImages(tk.Frame):
         #config = configparser.ConfigParser()
         print("closing")
         # close any running thread:
-        if self.copymove_thread.is_alive():
+        if (self.copymove_thread) and self.copymove_thread.is_alive():
             print("stopping thread")
             self.stop_thread = True
             self.copymove_thread.join(1.)

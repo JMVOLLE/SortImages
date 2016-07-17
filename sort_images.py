@@ -23,7 +23,7 @@ from resources import R
 # some constants
 _KEY_DATE = 'Image DateTime'
 _REVISION = "V1.0.0"
-
+__copyright__ = "Copyright 2016 Jean-Marc Volle"
 
 class SortImages(tk.Frame):
     """ Sort Image application top class """
@@ -190,9 +190,25 @@ class SortImages(tk.Frame):
             except queue.Empty:
                 pass
 
+
+    def display_about(self):
+        about_txt = """
+        SortImage Revision %s
+        %s
+        """ % (_REVISION, __copyright__)
+        messagebox.showinfo(title=self.T['about'],message=about_txt)
+
+    def create_menubar(self):
+        menubar = Menu(self.root)
+        helpmenu = Menu(menubar, tearoff=0)
+        helpmenu.add_command(label=self.T['about'], command=self.display_about)
+        menubar.add_cascade(label=self.T['help'], menu=helpmenu)
+
+        self.root.config(menu=menubar)
+
     def create_ui(self):
         """ Create the UI. All widgets are instanciated here"""
-
+        self.create_menubar()
         self.SRC_bt = Button(self)
 
         self.SRC_bt["text"] = self.T['SRC_bt']
@@ -281,7 +297,7 @@ class SortImages(tk.Frame):
     def COPYMOVE_cb(self):
         #start the worker thread
         self.stop_thread = False
-        self.copymove_thread = threading.Thread(target=self.COPYMOVE_WorkerThread)
+        self.copymove_thread = threading.Thread(target=self.COPYMOVE_worker_thread)
         self.copymove_thread.start()
 
 
@@ -289,7 +305,7 @@ class SortImages(tk.Frame):
         self.STATUS_queue.put(val)
 
 
-    def COPYMOVE_WorkerThread(self):
+    def COPYMOVE_worker_thread(self):
         try:
             src = self.SRC_val.get()
             dst = self.DST_val.get()

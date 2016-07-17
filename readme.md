@@ -1,8 +1,16 @@
 # Sort Images
 Python based application sorting (copy/move) images based on their exif capture date
+
 Written by Jean-Marc Volle
 
 ![ui overview][ui]
+
+Images from the source folder are copied/moved in the destination folder
+in specific folders created according to the year and the month of the day
+the image was taken (exif capture date).
+
+Eg : An image taken on the 4th of July 2016 is moved/copied to destination/2016/07
+
 
 # Installation
 Copy the files listed in Files section and run using your favorite python environment

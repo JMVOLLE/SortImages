@@ -26,6 +26,8 @@ _KEY_DATE = 'Image DateTime'
 
 
 class SortImages(tk.Frame):
+    """ Sort Image application top class """
+
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
 
@@ -43,17 +45,24 @@ class SortImages(tk.Frame):
 
         self.grid()
         self.create_ui()
-        # Create queues for updating contrent of STATUS_txt and LOG_txt
+
+        # Create queues for updating  STATUS_txt and LOG_txt
         self.LOG_queue = queue.Queue()
         self.STATUS_queue = queue.Queue()
 
 
         # add handler on windows closing event
         self.root.protocol("WM_DELETE_WINDOW", self.WM_DELETE_WINDOW_cb)
+
         # state we are running then start periodical polling on the queues
         self.do_periodic_refresh()
 
     def WM_DELETE_WINDOW_cb(self):
+        """ Termination handler
+        - ensure that any on going copy/move thread is properly stopped
+        - update configuration history for next rune
+        - then close
+        """
         # save the src and dst for next call
         #config = configparser.ConfigParser()
         print("closing")

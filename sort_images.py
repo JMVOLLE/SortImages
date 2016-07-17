@@ -31,7 +31,7 @@ class SortImages(tk.Frame):
         tk.Frame.__init__(self, master)
 
         # retrieve config based information
-        self.config = self.ReadConfig()
+        self.config = self.read_configuration()
 
         #load translations:
         self.T = R.T(self.lang)
@@ -43,7 +43,7 @@ class SortImages(tk.Frame):
             self.root.title("Sort Images V1.0")
 
         self.grid()
-        self.createWidgets()
+        self.create_ui()
         # Create queues for updating contrent of STATUS_txt and LOG_txt
         self.LOG_queue = queue.Queue()
         self.STATUS_queue = queue.Queue()
@@ -53,7 +53,7 @@ class SortImages(tk.Frame):
 
         self.root.protocol("WM_DELETE_WINDOW", self.WM_DELETE_WINDOW_cb)
         # state we are running then start periodical polling on the queues
-        self.PeriodicRefresh()
+        self.do_periodic_refresh()
 
     def WM_DELETE_WINDOW_cb(self):
         # save the src and dst for next call
@@ -78,7 +78,7 @@ class SortImages(tk.Frame):
 
         self.root.destroy()
 
-    def ReadConfig(self):
+    def read_configuration(self):
         config = configparser.ConfigParser()
         try:
             config.read('sort_images.ini')
@@ -100,16 +100,15 @@ class SortImages(tk.Frame):
             pass
         return None
 
-
-    def PeriodicRefresh(self):
+    def do_periodic_refresh(self):
         """
             Check every 100 ms if there is something new in the queue.
         """
-        self.UpdateLog()
-        self.UpdateStatus()
-        self.master.after(100, self.PeriodicRefresh)
+        self.LOG_update()
+        self.STATUS_update()
+        self.master.after(100, self.do_periodic_refresh)
 
-    def Log(self,val, type=''):
+    def log(self, val, type=''):
         if type == 'I':
             self.LOG_queue.put("I:%s" % val)
         elif type == 'W':
@@ -119,7 +118,7 @@ class SortImages(tk.Frame):
         else:
             self.LOG_queue.put(val)
 
-    def UpdateLog(self):
+    def LOG_update(self):
         while self.LOG_queue.qsize():
             try:
                 msg = self.LOG_queue.get(0)
@@ -150,7 +149,7 @@ class SortImages(tk.Frame):
         if (current % progress_inc) == 0:
             self.STATUS_queue.put("+")
 
-    def UpdateStatus(self):
+    def STATUS_update(self):
         while self.STATUS_queue.qsize():
             try:
                 msg = self.STATUS_queue.get(0)
@@ -179,8 +178,8 @@ class SortImages(tk.Frame):
             except queue.Empty:
                 pass
 
-    def createWidgets(self):
-
+    def create_ui(self):
+        """ Create the UI. All widgets are instanciated here"""
 
         self.SRC_bt = Button(self)
 
@@ -195,12 +194,6 @@ class SortImages(tk.Frame):
         self.SRC_entry = Entry(self, textvariable=self.SRC_val,width=64)
         self.SRC_entry.grid(column=1, row=0, sticky='EW')
 
-
-        #self.SRC_txt["value"] = "please select source folder"
-        #self.SRC_txt.pack(side="right")
-
-#        self.DST_fr = Frame(self)
-        #self.DST_fr.pack()
 
         self.DST_bt = Button(self)
         self.DST_bt["text"] = self.T['DST_bt']
@@ -238,10 +231,6 @@ class SortImages(tk.Frame):
         self.ACTION_rb_mv.pack(side=LEFT)
 
 
-        #self.ACTION_rb_cp.grid(column=1, row=2,sticky=tk.W)
-        #self.ACTION_rb_mv.grid(column=1, row=3,sticky=tk.W)
-
-
         self.COPY_bt = Button(self)
         self.COPY_bt["text"] =self.T['COPY_bt_cp']
         self.COPY_bt["command"] = self.COPY_cb
@@ -265,7 +254,7 @@ class SortImages(tk.Frame):
         self.SRC_val.set(folder)
         self.src = folder
 
-        self.Log("%s: <%s>\n" %(self.T['SRC_cb_log'], self.SRC_val.get()))
+        self.log("%s: <%s>\n" % (self.T['SRC_cb_log'], self.SRC_val.get()))
 
     def DST_cb(self):
         folder = filedialog.askdirectory(title=self.T['DST_cb_dlg'],
@@ -275,7 +264,7 @@ class SortImages(tk.Frame):
                                          )
         self.DST_val.set(folder)
         self.dst = folder
-        self.Log("%s: <%s>\n" % (self.T['DST_cb_log'], self.DST_val.get()))
+        self.log("%s: <%s>\n" % (self.T['DST_cb_log'], self.DST_val.get()))
 
     def COPY_cb(self):
         #start the worker thread
@@ -284,7 +273,7 @@ class SortImages(tk.Frame):
 
 
 
-    def Status(self, val):
+    def update_status(self, val):
         self.STATUS_queue.put(val)
 
 
@@ -302,10 +291,10 @@ class SortImages(tk.Frame):
         self.src = src
         self.dst = dst
         file_to_folder, unique_folders = self.parse_source_folder(src)
-        self.Log("%d %s" % (len(file_to_folder),self.T['log1']))
-        self.Log("%d %s" % (len(unique_folders),self.T['log2']))
+        self.log("%d %s" % (len(file_to_folder), self.T['log1']))
+        self.log("%d %s" % (len(unique_folders), self.T['log2']))
         for folder in unique_folders:
-            self.Log(" - %s\n" % folder)
+            self.log(" - %s\n" % folder)
 
         self.create_destination_folders(dst, unique_folders,debug=self.debug)
 
@@ -352,13 +341,13 @@ class SortImages(tk.Frame):
         unique_folders = set()
 
         cnt = 0
-        self.Status(self.T['status1'])
+        self.update_status(self.T['status1'])
         for file in jpg_files:
             capture_date = self.get_capture_date(file)
             destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
             destination_folders[file] = destination
             if verbose:
-                self.Log(("%s : %s\n" % (os.path.basename(file),destination)))
+                self.log(("%s : %s\n" % (os.path.basename(file), destination)))
             if destination not in unique_folders:
                 unique_folders.add(destination)
             cnt += 1
@@ -370,18 +359,18 @@ class SortImages(tk.Frame):
 
     def create_destination_folders(self,dest_root, unique_destination_folders, debug=False):
         """ create output directories if needed """
-        self.Status(self.T['status2'])
+        self.update_status(self.T['status2'])
         progress_inc = round(len(unique_destination_folders) / 10)
         cnt = 0
         for folder in unique_destination_folders:
             #destination_folder = "%s\%s" % (dest_root, folder)
             destination_folder = os.path.join(dest_root,folder)
             if not os.path.exists(destination_folder):
-                self.Log("%s %s\n" % (destination_folder,self.T['log3'] ))
+                self.log("%s %s\n" % (destination_folder, self.T['log3']))
                 if not debug:
                     os.makedirs(destination_folder)
             else:
-                self.Log("%s %s\n" % (destination_folder, self.T['log4']))
+                self.log("%s %s\n" % (destination_folder, self.T['log4']))
             cnt += 1
             self.UpdateProgress(cnt, len(unique_destination_folders))
 
@@ -392,9 +381,9 @@ class SortImages(tk.Frame):
         cnt = 0
         total = len(destination_folders)
         if move:
-            self.Status(self.T['status3'])
+            self.update_status(self.T['status3'])
         else:
-            self.Status(self.T['status4'])
+            self.update_status(self.T['status4'])
         skipped = []
         moved = []
         copied = []
@@ -406,28 +395,28 @@ class SortImages(tk.Frame):
                 if move:
                     if not debug:
                         shutil.move(file, destination_folder)
-                    self.Log("%s %s -> %s\n" % (self.T['log5'],os.path.basename(file), destination_folder))
+                    self.log("%s %s -> %s\n" % (self.T['log5'], os.path.basename(file), destination_folder))
                     moved.append(src_basename)
 
                 else: #copy
                     if not debug:
                         shutil.copy(file, destination_folder)
-                    self.Log("%s %s -> %s\n" % (self.T['log6'],os.path.basename(file), destination_folder))
+                    self.log("%s %s -> %s\n" % (self.T['log6'], os.path.basename(file), destination_folder))
                     copied.append(src_basename)
             else:
-                self.Log("%s %s %s\n" % (src_basename,self.T['log7'],destination_folder), type='W')
+                self.log("%s %s %s\n" % (src_basename, self.T['log7'], destination_folder), type='W')
                 skipped.append(src_basename)
             cnt +=1
             self.UpdateProgress(cnt, total)
 
         if move:
-            self.Log("%d %s\n" %(len(moved),self.T['log8']),type='I')
+            self.log("%d %s\n" % (len(moved), self.T['log8']), type='I')
         else:
-            self.Log("%d %s\n" % (len(copied), self.T['log9']), type='I')
+            self.log("%d %s\n" % (len(copied), self.T['log9']), type='I')
 
-        self.Log("%d %s\n" % (len(skipped), self.T['log10']),type='W')
+        self.log("%d %s\n" % (len(skipped), self.T['log10']), type='W')
         for file in skipped:
-            self.Log(" - %s\n" % file, type='W')
+            self.log(" - %s\n" % file, type='W')
 
 
 if __name__ == "__main__":

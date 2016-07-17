@@ -58,7 +58,10 @@ class SortImages(tk.Frame):
         #config = configparser.ConfigParser()
         print("closing")
         # close any running thread:
-
+        if self.copymove_thread.is_alive():
+            print("stopping thread")
+            self.stop_thread = True
+            self.copymove_thread.join(1.)
         try:
             #read again the original config
             #config.read('sort_images.ini')
@@ -268,8 +271,9 @@ class SortImages(tk.Frame):
 
     def COPYMOVE_cb(self):
         #start the worker thread
-        self.copy_thread = threading.Thread(target=self.COPYMOVE_WorkerThread)
-        self.copy_thread.start()
+        self.stop_thread = False
+        self.copymove_thread = threading.Thread(target=self.COPYMOVE_WorkerThread)
+        self.copymove_thread.start()
 
 
     def update_status(self, val):
@@ -277,39 +281,46 @@ class SortImages(tk.Frame):
 
 
     def COPYMOVE_WorkerThread(self):
-        src = self.SRC_val.get()
-        dst = self.DST_val.get()
+        try:
+            src = self.SRC_val.get()
+            dst = self.DST_val.get()
 
-        # validate the arguments
-        if not os.path.exists(src):
-            messagebox.showerror (self.T['missing_src'], self.T['SRC_cb_dlg'])
-            return
-        if not os.path.exists(dst) :
-            messagebox.showerror (self.T['missing_dst'], self.T['DST_cb_dlg'])
-            return
-        self.src = src
-        self.dst = dst
+            # validate the arguments
+            if not os.path.exists(src):
+                messagebox.showerror (self.T['missing_src'], self.T['SRC_cb_dlg'])
+                return
+            if not os.path.exists(dst) :
+                messagebox.showerror (self.T['missing_dst'], self.T['DST_cb_dlg'])
+                return
+            self.src = src
+            self.dst = dst
 
-        #disable the button to be sure it will not be hit while we run
-        self.COPYMOVE_bt["state"] = DISABLED
+            #disable the button to be sure it will not be hit while we run
+            self.COPYMOVE_bt["state"] = DISABLED
 
-        file_to_folder, unique_folders = self.parse_source_folder(src)
-        self.log("%d %s" % (len(file_to_folder), self.T['log1']))
-        self.log("%d %s" % (len(unique_folders), self.T['log2']))
-        for folder in unique_folders:
-            self.log(" - %s\n" % folder)
+            file_to_folder, unique_folders = self.parse_source_folder(src)
+            self.log("%d %s" % (len(file_to_folder), self.T['log1']))
+            self.log("%d %s" % (len(unique_folders), self.T['log2']))
+            for folder in unique_folders:
+                self.log(" - %s\n" % folder)
 
-        self.create_destination_folders(dst, unique_folders,debug=self.debug)
+            self.create_destination_folders(dst, unique_folders,debug=self.debug)
 
-        action = self.ACTION_val.get()
-        if action == 'MOVE':
-            move_arg = True
-        else:
-            move_arg = False
-        self.move_copy_files(dst, file_to_folder, move=move_arg, debug=self.debug)
+            action = self.ACTION_val.get()
+            if action == 'MOVE':
+                move_arg = True
+            else:
+                move_arg = False
+            self.move_copy_files(dst, file_to_folder, move=move_arg, debug=self.debug)
 
-        #job done, let's enable the button again
-        self.COPYMOVE_bt["state"] = NORMAL
+            #job done, let's enable the button again
+            self.COPYMOVE_bt["state"] = NORMAL
+        except Exception as e:
+            if str(e) == "stopped":
+                print("thread stopped")
+                pass
+        except:
+            raise
 
 
     def get_capture_date(self,file_name):
@@ -359,6 +370,8 @@ class SortImages(tk.Frame):
                 unique_folders.add(destination)
             cnt += 1
             self.UpdateProgress(cnt,len(jpg_files))
+            if self.stop_thread:
+                raise Exception("stopped")
         print("%d files found" % len(jpg_files))
         print("%d destination folders(s) " % len(unique_folders))
 
@@ -366,6 +379,7 @@ class SortImages(tk.Frame):
 
     def create_destination_folders(self,dest_root, unique_destination_folders, debug=False):
         """ create output directories if needed """
+
         self.update_status(self.T['status2'])
         progress_inc = round(len(unique_destination_folders) / 10)
         cnt = 0
@@ -380,10 +394,14 @@ class SortImages(tk.Frame):
                 self.log("%s %s\n" % (destination_folder, self.T['log4']))
             cnt += 1
             self.UpdateProgress(cnt, len(unique_destination_folders))
+            if self.stop_thread:
+                raise Exception("stopped")
 
     def move_copy_files(self,dest_root, destination_folders,move=False,debug=False):
         """ move files to where they belong
         :param destination_folders: a file name ordered dict of destination folders
+        :param move: boolean for moving vs copying
+        :param debug: debug mode, if True, not file operation (move or copy) are performed
         """
         cnt = 0
         total = len(destination_folders)
@@ -415,6 +433,9 @@ class SortImages(tk.Frame):
                 skipped.append(src_basename)
             cnt +=1
             self.UpdateProgress(cnt, total)
+            if self.stop_thread:
+                raise Exception("stopped")
+
 
         if move:
             self.log("%d %s\n" % (len(moved), self.T['log8']), type='I')

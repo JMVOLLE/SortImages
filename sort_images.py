@@ -21,8 +21,7 @@ from tkinter import messagebox
 from localisation import R
 
 # some constants
-
-KEY_DATE = 'Image DateTime'
+_KEY_DATE = 'Image DateTime'
 
 
 
@@ -50,7 +49,6 @@ class SortImages(tk.Frame):
 
 
         # add handler on windows closing event
-
         self.root.protocol("WM_DELETE_WINDOW", self.WM_DELETE_WINDOW_cb)
         # state we are running then start periodical polling on the queues
         self.do_periodic_refresh()
@@ -59,6 +57,8 @@ class SortImages(tk.Frame):
         # save the src and dst for next call
         #config = configparser.ConfigParser()
         print("closing")
+        # close any running thread:
+
         try:
             #read again the original config
             #config.read('sort_images.ini')
@@ -231,18 +231,18 @@ class SortImages(tk.Frame):
         self.ACTION_rb_mv.pack(side=LEFT)
 
 
-        self.COPY_bt = Button(self)
-        self.COPY_bt["text"] =self.T['COPY_bt_cp']
-        self.COPY_bt["command"] = self.COPY_cb
-        self.COPY_bt.grid(column=0, row=3,columnspan=2, sticky=tk.E + tk.W + tk.N +tk.S)
+        self.COPYMOVE_bt = Button(self)
+        self.COPYMOVE_bt["text"] =self.T['COPYMOVE_bt_cp']
+        self.COPYMOVE_bt["command"] = self.COPYMOVE_cb
+        self.COPYMOVE_bt.grid(column=0, row=3,columnspan=2, sticky=tk.E + tk.W + tk.N +tk.S)
 
     def ACTION_cb(self):
         #print ("action", self.ACTION_val.get())
         action = self.ACTION_val.get()
         if action == 'COPY':
-            self.COPY_bt["text"] = self.T['COPY_bt_cp']
+            self.COPYMOVE_bt["text"] = self.T['COPYMOVE_bt_cp']
         else:
-            self.COPY_bt["text"] = self.T['COPY_bt_mv']
+            self.COPYMOVE_bt["text"] = self.T['COPYMOVE_bt_mv']
 
 
     def SRC_cb(self):
@@ -266,18 +266,17 @@ class SortImages(tk.Frame):
         self.dst = folder
         self.log("%s: <%s>\n" % (self.T['DST_cb_log'], self.DST_val.get()))
 
-    def COPY_cb(self):
+    def COPYMOVE_cb(self):
         #start the worker thread
-        self.copy_thread = threading.Thread(target=self.COPY_WorkerThread)
+        self.copy_thread = threading.Thread(target=self.COPYMOVE_WorkerThread)
         self.copy_thread.start()
-
 
 
     def update_status(self, val):
         self.STATUS_queue.put(val)
 
 
-    def COPY_WorkerThread(self):
+    def COPYMOVE_WorkerThread(self):
         src = self.SRC_val.get()
         dst = self.DST_val.get()
 
@@ -290,6 +289,10 @@ class SortImages(tk.Frame):
             return
         self.src = src
         self.dst = dst
+
+        #disable the button to be sure it will not be hit while we run
+        self.COPYMOVE_bt["state"] = DISABLED
+
         file_to_folder, unique_folders = self.parse_source_folder(src)
         self.log("%d %s" % (len(file_to_folder), self.T['log1']))
         self.log("%d %s" % (len(unique_folders), self.T['log2']))
@@ -305,6 +308,10 @@ class SortImages(tk.Frame):
             move_arg = False
         self.move_copy_files(dst, file_to_folder, move=move_arg, debug=self.debug)
 
+        #job done, let's enable the button again
+        self.COPYMOVE_bt["state"] = NORMAL
+
+
     def get_capture_date(self,file_name):
         """
         :param file_name: name of a jpeg file
@@ -312,11 +319,11 @@ class SortImages(tk.Frame):
         """
         with open(file_name, 'rb') as file:
             # Return Exif tags
-            exif_tags = exifread.process_file(file,stop_tag=KEY_DATE)
+            exif_tags = exifread.process_file(file, stop_tag=_KEY_DATE)
 
-            if KEY_DATE in exif_tags.keys():
+            if _KEY_DATE in exif_tags.keys():
                 # print("Key: <%s>, value <%s>" % (key_date, exif_tags[key_date]))
-                str_creation_date = str(exif_tags[KEY_DATE])
+                str_creation_date = str(exif_tags[_KEY_DATE])
                 #        print('Creation date ', str_creation_date)
                 capture_date = datetime.datetime.strptime(str_creation_date, '%Y:%m:%d %H:%M:%S')
                 #            print("year:%.4d" % creation_date.year)
@@ -347,7 +354,7 @@ class SortImages(tk.Frame):
             destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
             destination_folders[file] = destination
             if verbose:
-                self.log(("%s : %s\n" % (os.path.basename(file), destination)))
+                self.log(("%s : %.2d %.4d \n" % (os.path.basename(file),capture_date.month,capture_date.year)))
             if destination not in unique_folders:
                 unique_folders.add(destination)
             cnt += 1

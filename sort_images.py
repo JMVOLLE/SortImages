@@ -3,7 +3,7 @@ Copyright 2016 Jean-Marc Volle
 License: Apache-2.0
 """
 
-__version__='1.0.0'
+__version__='1.0.1'
 
 import exifread
 import datetime
@@ -366,6 +366,9 @@ class SortImages(tk.Frame):
         :param file_name: name of a jpeg file
         :return: date a which the photo was taken
         """
+        # default capture date in case exif parsing fails
+        capture_date = datetime.datetime.strptime("1974:10:05 00:00:00", '%Y:%m:%d %H:%M:%S')
+
         with open(file_name, 'rb') as file:
             # Return Exif tags
             exif_tags = exifread.process_file(file, stop_tag=_KEY_DATE)

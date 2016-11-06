@@ -249,12 +249,12 @@ class SortImages(tk.Frame):
 
         # scrollbar: http://effbot.org/zone/tkinter-scrollbar-patterns.htm
         self.STATUS_txt = Text(self,height=1)
-        self.STATUS_txt.grid(column=0, row=4, columnspan=2)
+        self.STATUS_txt.grid(column=0, row=6, columnspan=2)
         self.STATUS_txt.insert("1.0",self.T['STATUS_txt'])
         #self.Status("Waiting for inputs")
 
         self.LOG_txt =Text(self)
-        self.LOG_txt.grid(column=0, row=5,columnspan=2)
+        self.LOG_txt.grid(column=0, row=7,columnspan=2)
         self.LOG_txt.tag_configure('error', background='red')
         self.LOG_txt.tag_configure('warning', foreground='red')
         self.LOG_txt.tag_configure('info', foreground='green')
@@ -278,10 +278,21 @@ class SortImages(tk.Frame):
         self.ANALYSE_bt["command"] = self.ANALYSE_cb
         self.ANALYSE_bt.grid(column=0, row=3, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
 
+        self.SELECTION_fr = LabelFrame(self,text="Selection")
+        self.SELECTION_fr.grid(column=0, row=4, columnspan=2, sticky=tk.W+tk.E)
+
+        self.SRC_LIST_lst = Listbox(self.SELECTION_fr)
+        #self.SRC_LIST_lst.grid(column=0, row=0, columnspan=1, sticky=tk.W)
+        self.SRC_LIST_lst.pack(side=LEFT)
+
+        self.DST_LIST_lst = Listbox(self.SELECTION_fr)
+        #self.DST_LIST_lst.grid(column=1, row=0, columnspan=1, sticky=tk.E)
+        self.DST_LIST_lst.pack(side=RIGHT)
+
         self.COPYMOVE_bt = Button(self)
         self.COPYMOVE_bt["text"] = self.T['COPYMOVE_bt_cp']
         self.COPYMOVE_bt["command"] = self.COPYMOVE_cb
-        self.COPYMOVE_bt.grid(column=0, row=4, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
+        self.COPYMOVE_bt.grid(column=0, row=5, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
 
     def ACTION_cb(self):
         #print ("action", self.ACTION_val.get())
@@ -355,6 +366,11 @@ class SortImages(tk.Frame):
             self.log("%d %s" % (len(unique_folders), self.T['log2']))
             for folder in unique_folders:
                 self.log(" - %s\n" % folder)
+
+            # We can now populate the list with what we found (folders/images per folder)
+
+            # job done, let's enable the button again
+            self.ANALYSE_bt["state"] = NORMAL
         except Exception as e:
             if str(e) == "stopped":
                 print("thread stopped")

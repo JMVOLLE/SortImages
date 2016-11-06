@@ -15,6 +15,7 @@ _T = {
     'ACTION_val': {'en': 'Copy', 'fr': 'Copier'},
     'COPYMOVE_bt_cp': {'en': 'COPY', 'fr': 'COPIER'},
     'COPYMOVE_bt_mv': {'en': 'MOVE', 'fr': 'DEPLACER'},
+    'ANALYSE_bt': {'en': 'ANALYSE', 'fr': 'ANALYSER'},
     'SRC_cb_dlg': {'en': 'Please select Images source folder', 'fr': "Choisissez le répertoire source s'il vous plait"},
     'SRC_cb_log': {'en': 'source folder', 'fr': 'répertoire source'},
     'DST_cb_dlg': {'en': 'Please select Images destination folder',

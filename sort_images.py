@@ -272,10 +272,16 @@ class SortImages(tk.Frame):
         self.ACTION_rb_mv.pack(side=LEFT)
 
 
+
+        self.ANALYSE_bt = Button(self)
+        self.ANALYSE_bt["text"] = self.T['ANALYSE_bt']
+        self.ANALYSE_bt["command"] = self.ANALYSE_cb
+        self.ANALYSE_bt.grid(column=0, row=3, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
+
         self.COPYMOVE_bt = Button(self)
-        self.COPYMOVE_bt["text"] =self.T['COPYMOVE_bt_cp']
+        self.COPYMOVE_bt["text"] = self.T['COPYMOVE_bt_cp']
         self.COPYMOVE_bt["command"] = self.COPYMOVE_cb
-        self.COPYMOVE_bt.grid(column=0, row=3,columnspan=2, sticky=tk.E + tk.W + tk.N +tk.S)
+        self.COPYMOVE_bt.grid(column=0, row=4, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
 
     def ACTION_cb(self):
         #print ("action", self.ACTION_val.get())
@@ -307,6 +313,13 @@ class SortImages(tk.Frame):
         self.dst = folder
         self.log("%s: <%s>\n" % (self.T['DST_cb_log'], self.DST_val.get()))
 
+
+    def ANALYSE_cb(self):
+        #start the worker thread
+        self.stop_thread = False
+        self.analyse_thread = threading.Thread(target=self.ANALYSE_worker_thread)
+        self.analyse_thread.start()
+
     def COPYMOVE_cb(self):
         #start the worker thread
         self.stop_thread = False
@@ -316,6 +329,38 @@ class SortImages(tk.Frame):
 
     def update_status(self, val):
         self.STATUS_queue.put(val)
+
+
+    def ANALYSE_worker_thread(self):
+        try:
+            src = self.SRC_val.get()
+            dst = self.DST_val.get()
+
+            # validate the arguments
+            if not os.path.exists(src):
+                messagebox.showerror (self.T['missing_src'], self.T['SRC_cb_dlg'])
+                return
+            if not os.path.exists(dst) :
+                messagebox.showerror (self.T['missing_dst'], self.T['DST_cb_dlg'])
+                return
+            self.src = src
+            self.dst = dst
+
+            #disable the button to be sure it will not be hit while we run
+            self.COPYMOVE_bt["state"] = DISABLED
+            self.ANALYSE_bt["state"] = DISABLED
+
+            file_to_folder, unique_folders = self.parse_source_folder(src)
+            self.log("%d %s" % (len(file_to_folder), self.T['log1']))
+            self.log("%d %s" % (len(unique_folders), self.T['log2']))
+            for folder in unique_folders:
+                self.log(" - %s\n" % folder)
+        except Exception as e:
+            if str(e) == "stopped":
+                print("thread stopped")
+                pass
+        except:
+            raise
 
 
     def COPYMOVE_worker_thread(self):

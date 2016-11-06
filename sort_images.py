@@ -282,7 +282,8 @@ class SortImages(tk.Frame):
         self.SELECTION_fr.grid(column=0, row=4, columnspan=2, sticky=tk.W+tk.E)
 
         self.SRC_LIST_lst = Listbox(self.SELECTION_fr)
-        #self.SRC_LIST_lst.grid(column=0, row=0, columnspan=1, sticky=tk.W)
+        self.SRC_LIST_lst["selectmode"] = EXTENDED
+        self.SRC_LIST_lst.bind('<Double-1>',self.SRC_LIST_dbl_click_cb)
         self.SRC_LIST_lst.pack(side=LEFT)
 
         self.DST_LIST_lst = Listbox(self.SELECTION_fr)
@@ -293,6 +294,12 @@ class SortImages(tk.Frame):
         self.COPYMOVE_bt["text"] = self.T['COPYMOVE_bt_cp']
         self.COPYMOVE_bt["command"] = self.COPYMOVE_cb
         self.COPYMOVE_bt.grid(column=0, row=5, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
+
+    def SRC_LIST_dbl_click_cb(self,event):
+        widget_list =event.widget
+        index = widget_list.curselection()  # on list double-click
+        label = widget_list.get(index)
+        print(label)
 
     def ACTION_cb(self):
         #print ("action", self.ACTION_val.get())
@@ -368,6 +375,10 @@ class SortImages(tk.Frame):
                 self.log(" - %s\n" % folder)
 
             # We can now populate the list with what we found (folders/images per folder)
+
+            for folder in sorted(unique_folders):
+                self.SRC_LIST_lst.insert(END, folder)
+
 
             # job done, let's enable the button again
             self.ANALYSE_bt["state"] = NORMAL

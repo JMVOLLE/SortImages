@@ -287,7 +287,8 @@ class SortImages(tk.Frame):
         self.SRC_LIST_lst.pack(side=LEFT)
 
         self.DST_LIST_lst = Listbox(self.SELECTION_fr)
-        #self.DST_LIST_lst.grid(column=1, row=0, columnspan=1, sticky=tk.E)
+        self.DST_LIST_lst["selectmode"] = EXTENDED
+        self.DST_LIST_lst.bind('<Double-1>', self.DST_LIST_dbl_click_cb)
         self.DST_LIST_lst.pack(side=RIGHT)
 
         self.COPYMOVE_bt = Button(self)
@@ -296,31 +297,40 @@ class SortImages(tk.Frame):
         self.COPYMOVE_bt.grid(column=0, row=5, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
 
     def SRC_LIST_dbl_click_cb(self,event):
+        """ add any double click item from source to dst """
 
-        # retrieve the selection
+        # retrieve the selection on src side
         widget_list = event.widget
         index = widget_list.curselection()  # on list double-click
         label = widget_list.get(index)
 
-        print ("selected ", label)
         # move it to the destination list after sorting again all entries
         current_selection = self.DST_LIST_lst.get(0,END)
-        print ("current selection", current_selection)
 
         new_selection = [label]
         for item in current_selection:
             new_selection.append(item)
 
         new_selection.sort()
-        print ("new_selection ",new_selection )
+
 
         #update the selected list ensuring no dupplicates are added
         self.DST_LIST_lst.delete(0,END)
-
         for item in new_selection:
             if self.DST_LIST_lst.get(END) != item:
                 self.DST_LIST_lst.insert(END,item)
-        print(label)
+
+        # update Action button visibiliy
+        self.update_COPYMOVE_bt_state()
+
+    def DST_LIST_dbl_click_cb(self,event):
+        """ remove any double clicked item"""
+        # retrieve the selection on src side
+        widget_list = event.widget
+        index = widget_list.curselection()  # on list double-click
+        widget_list.delete(index)
+        self.update_COPYMOVE_bt_state()
+
 
     def ACTION_cb(self):
         #print ("action", self.ACTION_val.get())
@@ -369,6 +379,12 @@ class SortImages(tk.Frame):
     def update_status(self, val):
         self.STATUS_queue.put(val)
 
+    def update_COPYMOVE_bt_state(self):
+        """ ensure COPYMOVE_bt is enabled only if there is something to actually process"""
+        if self.DST_LIST_lst.size()> 0:
+            self.COPYMOVE_bt["state"] = NORMAL
+        else:
+            self.COPYMOVE_bt["state"] = DISABLED
 
     def ANALYSE_worker_thread(self):
         try:
@@ -396,7 +412,8 @@ class SortImages(tk.Frame):
                 self.log(" - %s\n" % folder)
 
             # We can now populate the list with what we found (folders/images per folder)
-
+            # clean previous results:
+            self.SRC_LIST_lst.delete(0,END)
             for folder in sorted(unique_folders):
                 self.SRC_LIST_lst.insert(END, folder)
 

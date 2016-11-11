@@ -296,9 +296,28 @@ class SortImages(tk.Frame):
         self.COPYMOVE_bt.grid(column=0, row=5, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
 
     def SRC_LIST_dbl_click_cb(self,event):
-        widget_list =event.widget
+
+        # retrieve the selection
+        widget_list = event.widget
         index = widget_list.curselection()  # on list double-click
         label = widget_list.get(index)
+
+        print ("selected ", label)
+        # move it to the destination list after sorting again all entries
+        current_selection = self.DST_LIST_lst.get(0,END)
+        print ("current selection", current_selection)
+
+        new_selection = [label]
+        for item in current_selection:
+            new_selection.append(item)
+
+        new_selection.sort()
+        print ("new_selection ",new_selection )
+
+
+        self.DST_LIST_lst.delete(0,END)
+        for item in new_selection:
+            self.DST_LIST_lst.insert(END,item)
         print(label)
 
     def ACTION_cb(self):

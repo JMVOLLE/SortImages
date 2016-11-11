@@ -314,10 +314,12 @@ class SortImages(tk.Frame):
         new_selection.sort()
         print ("new_selection ",new_selection )
 
-
+        #update the selected list ensuring no dupplicates are added
         self.DST_LIST_lst.delete(0,END)
+
         for item in new_selection:
-            self.DST_LIST_lst.insert(END,item)
+            if self.DST_LIST_lst.get(END) != item:
+                self.DST_LIST_lst.insert(END,item)
         print(label)
 
     def ACTION_cb(self):

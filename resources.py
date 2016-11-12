@@ -34,7 +34,7 @@ _T = {
     'log8': {'en': 'images moved', 'fr': 'images déplacées'},
     'log9': {'en': 'images copied', 'fr': 'images copiées'},
     'log10': {'en': 'images skipped', 'fr': 'images sautées'},
-
+    'log11': {'en': 'not selected', 'fr': 'non selectionné'},
     'status1': {'en': 'analyzing source folder', 'fr': 'analyze du répertoire source'},
     'status2': {'en': 'Creating destination folder(s)', 'fr': 'création des repertoires de destination'},
     'status3': {'en': 'Moving images', 'fr': 'Déplacement des images'},

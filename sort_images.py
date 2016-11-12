@@ -81,7 +81,7 @@ class SortImages(tk.Frame):
                     self.config.add_section('HISTORY')
                 history = self.config['HISTORY']
                 history['SRC'] = self.src
-                history['DST'] = self.dst
+                history['DST'] = self.dst_root
 
                 with open('sort_images.ini', 'w') as configfile:
                     self.config.write(configfile)
@@ -101,10 +101,10 @@ class SortImages(tk.Frame):
             if config.has_section('HISTORY'):
                 history = config['HISTORY']
                 self.src = history['SRC']
-                self.dst = history['DST']
+                self.dst_root = history['DST']
             else:
                 self.src = os.path.expanduser('~/.')
-                self.dst = os.path.expanduser('~/.')
+                self.dst_root = os.path.expanduser('~/.')
             return config
         except Exception as e:
             self.lang = 'en'
@@ -323,9 +323,8 @@ class SortImages(tk.Frame):
 
         widget_list.delete(index)
 
-        # in move mode, put back the selection on the source side (in copy it was never removed in the first place)
-        if self.ACTION_val.get() == 'MOVE':
-            self.add_item_to_list_widget(self.SRC_LIST_lst,label)
+        #put back the selection on the source side (in copy it was never removed in the first place)
+        self.add_item_to_list_widget(self.SRC_LIST_lst,label)
 
         #update state of the action button depending on the current selection status (empty or )
         self.update_COPYMOVE_bt_state()
@@ -355,10 +354,10 @@ class SortImages(tk.Frame):
         folder = filedialog.askdirectory(title=self.T['DST_cb_dlg'],
                                          mustexist=True,
                                          #initialdir=os.path.expanduser('~/.')
-                                         initialdir=self.dst
+                                         initialdir=self.dst_root
                                          )
         self.DST_val.set(folder)
-        self.dst = folder
+        self.dst_root = folder
         self.log("%s: <%s>\n" % (self.T['DST_cb_log'], self.DST_val.get()))
 
 
@@ -398,14 +397,14 @@ class SortImages(tk.Frame):
                 messagebox.showerror (self.T['missing_dst'], self.T['DST_cb_dlg'])
                 return
             self.src = src
-            self.dst = dst
+            self.dst_root = dst
 
             #disable the button to be sure it will not be hit while we run
             self.COPYMOVE_bt["state"] = DISABLED
             self.ANALYSE_bt["state"] = DISABLED
 
-            file_to_folder, unique_folders = self.parse_source_folder(src)
-            self.log("%d %s" % (len(file_to_folder), self.T['log1']))
+            self.file_to_year_month, unique_folders = self.parse_source_folder(src)
+            self.log("%d %s" % (len(self.file_to_year_month), self.T['log1']))
             self.log("%d %s" % (len(unique_folders), self.T['log2']))
             for folder in unique_folders:
                 self.log(" - %s\n" % folder)
@@ -431,36 +430,22 @@ class SortImages(tk.Frame):
 
     def COPYMOVE_worker_thread(self):
         try:
-            src = self.SRC_val.get()
-            dst = self.DST_val.get()
-
-            # validate the arguments
-            if not os.path.exists(src):
-                messagebox.showerror (self.T['missing_src'], self.T['SRC_cb_dlg'])
-                return
-            if not os.path.exists(dst) :
-                messagebox.showerror (self.T['missing_dst'], self.T['DST_cb_dlg'])
-                return
-            self.src = src
-            self.dst = dst
-
             #disable the button to be sure it will not be hit while we run
             self.COPYMOVE_bt["state"] = DISABLED
 
-            file_to_folder, unique_folders = self.parse_source_folder(src)
-            self.log("%d %s" % (len(file_to_folder), self.T['log1']))
-            self.log("%d %s" % (len(unique_folders), self.T['log2']))
-            for folder in unique_folders:
-                self.log(" - %s\n" % folder)
+            # retrieve the items selected for copying/moving
+            src_folders = self.SRC_LIST_lst.get(0, END)
+            dst_folders = self.DST_LIST_lst.get(0, END)
 
-            self.create_destination_folders(dst, unique_folders,debug=self.debug)
+
+            self.create_destination_folders(self.dst_root, dst_folders, debug=self.debug)
 
             action = self.ACTION_val.get()
             if action == 'MOVE':
                 move_arg = True
             else:
                 move_arg = False
-            self.move_copy_files(dst, file_to_folder, move=move_arg, debug=self.debug)
+            self.move_copy_files(src_folders,dst_folders)
 
             #job done, let's enable the button again
             self.COPYMOVE_bt["state"] = NORMAL
@@ -566,52 +551,74 @@ class SortImages(tk.Frame):
             if self.stop_thread:
                 raise Exception("stopped")
 
-    def move_copy_files(self,dest_root, destination_folders,move=False,debug=False):
+    def move_copy_files(self,src_folders,dst_folders):
         """ move files to where they belong
         :param destination_folders: a file name ordered dict of destination folders
         :param move: boolean for moving vs copying
         :param debug: debug mode, if True, not file operation (move or copy) are performed
         """
+        dest_root = self.dst_root
+
         cnt = 0
-        total = len(destination_folders)
-        if move:
-            self.update_status(self.T['status3'])
-        else:
-            self.update_status(self.T['status4'])
+        total = len(self.file_to_year_month)
         skipped = []
         moved = []
         copied = []
-        for file in destination_folders.keys():
-            destination_folder = os.path.join(dest_root, destination_folders[file])
+        not_selected = []
+
+        # loop on all files to be processed
+        for file in self.file_to_year_month.keys():
+            # check the status of the destination folder associated to the current file
+            year_month = self.file_to_year_month[file]
+
+            destination_folder = os.path.join(dest_root, year_month)
             src_basename = os.path.basename(file)
             destination_file =os.path.join(destination_folder,src_basename)
-            if not os.path.exists(destination_file):
-                if move:
-                    if not debug:
-                        shutil.move(file, destination_folder)
-                    self.log("%s %s -> %s\n" % (self.T['log5'], os.path.basename(file), destination_folder))
-                    moved.append(src_basename)
 
-                else: #copy
-                    if not debug:
-                        shutil.copy(file, destination_folder)
-                    self.log("%s %s -> %s\n" % (self.T['log6'], os.path.basename(file), destination_folder))
-                    copied.append(src_basename)
-            else:
+
+            # if file already exist in destination skip it
+            if os.path.exists(destination_file):
                 self.log("%s %s %s\n" % (src_basename, self.T['log7'], destination_folder), type='W')
                 skipped.append(src_basename)
+                cnt += 1
+                continue # go to next file
+
+            #decide between copying and moving using user selected lists
+            #  check status of year month vs source and destination lists
+            # if     in source and dst       : copy
+            # if     in source and not in dst: do nothing
+            # if not in source and     in dst: move
+            # if not in source and not in dst: assert
+
+            if  year_month  in src_folders:
+                if year_month in dst_folders:
+                    if not self.debug:
+                        shutil.copy(file, destination_folder)
+                    self.log("%s %s -> %s\n" % (self.T['log6'], src_basename, destination_folder))
+                    copied.append(src_basename)
+                else:
+                    self.log("%s %s %s\n" % (src_basename, self.T['log11'], destination_folder))
+                    not_selected.append(src_basename)
+            else:
+                if year_month in dst_folders:
+                    if not self.debug:
+                        shutil.move(file, destination_folder)
+                    self.log("%s %s -> %s\n" % (self.T['log5'], src_basename, destination_folder))
+                    moved.append(src_basename)
+                else:
+                    raise NameError('Inconsistent src and dst lists')
+
             cnt +=1
             self.UpdateProgress(cnt, total)
             if self.stop_thread:
                 raise Exception("stopped")
 
-
-        if move:
+        #time to update a status of what we did
             self.log("%d %s\n" % (len(moved), self.T['log8']), type='I')
-        else:
             self.log("%d %s\n" % (len(copied), self.T['log9']), type='I')
+            self.log("%d %s\n" % (len(not_selected), self.T['log11']), type='I')
+            self.log("%d %s\n" % (len(skipped), self.T['log10']), type='W')
 
-        self.log("%d %s\n" % (len(skipped), self.T['log10']), type='W')
         for file in skipped:
             self.log(" - %s\n" % file, type='W')
 

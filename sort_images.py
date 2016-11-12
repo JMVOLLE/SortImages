@@ -304,21 +304,12 @@ class SortImages(tk.Frame):
         index = widget_list.curselection()  # on list double-click
         label = widget_list.get(index)
 
+        #In move mode delete the entry to make it clear it will be moved
+        if self.ACTION_val.get() == 'MOVE':
+            widget_list.delete(index)
+
         # move it to the destination list after sorting again all entries
-        current_selection = self.DST_LIST_lst.get(0,END)
-
-        new_selection = [label]
-        for item in current_selection:
-            new_selection.append(item)
-
-        new_selection.sort()
-
-
-        #update the selected list ensuring no dupplicates are added
-        self.DST_LIST_lst.delete(0,END)
-        for item in new_selection:
-            if self.DST_LIST_lst.get(END) != item:
-                self.DST_LIST_lst.insert(END,item)
+        self.add_item_to_list_widget(self.DST_LIST_lst, label)
 
         # update Action button visibiliy
         self.update_COPYMOVE_bt_state()
@@ -328,7 +319,15 @@ class SortImages(tk.Frame):
         # retrieve the selection on src side
         widget_list = event.widget
         index = widget_list.curselection()  # on list double-click
+        label = widget_list.get(index)
+
         widget_list.delete(index)
+
+        # in move mode, put back the selection on the source side (in copy it was never removed in the first place)
+        if self.ACTION_val.get() == 'MOVE':
+            self.add_item_to_list_widget(self.SRC_LIST_lst,label)
+
+        #update state of the action button depending on the current selection status (empty or )
         self.update_COPYMOVE_bt_state()
 
 
@@ -414,6 +413,8 @@ class SortImages(tk.Frame):
             # We can now populate the list with what we found (folders/images per folder)
             # clean previous results:
             self.SRC_LIST_lst.delete(0,END)
+            self.DST_LIST_lst.delete(0, END)
+
             for folder in sorted(unique_folders):
                 self.SRC_LIST_lst.insert(END, folder)
 
@@ -469,6 +470,23 @@ class SortImages(tk.Frame):
                 pass
         except:
             raise
+
+
+    def add_item_to_list_widget(self,widget,item):
+        # move it to the destination list after sorting again all entries
+        current_items = widget.get(0,END)
+
+        updated_items = [item]
+        for item in current_items:
+            updated_items.append(item)
+
+        updated_items.sort()
+
+        #update widget list ensuring no dupplicates are added
+        widget.delete(0,END)
+        for item in updated_items:
+            if widget.get(END) != item:
+                widget.insert(END,item)
 
 
     def get_capture_date(self,file_name):

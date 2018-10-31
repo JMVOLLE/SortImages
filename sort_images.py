@@ -232,7 +232,7 @@ class SortImages(tk.Frame):
         self.SRC_val = StringVar()
         self.SRC_val.set(self.T['SRC_val'])
 
-        self.SRC_entry = Entry(self, textvariable=self.SRC_val,width=64)
+        self.SRC_entry = Entry(self, textvariable=self.SRC_val,width=32)
         self.SRC_entry.grid(column=1, row=0, sticky='EW')
 
 
@@ -273,16 +273,16 @@ class SortImages(tk.Frame):
         self.SRC_LIST_lst = Listbox(self.SELECTION_fr)
         self.SRC_LIST_lst["selectmode"] = EXTENDED
         self.SRC_LIST_lst.bind('<Double-1>',self.SRC_LIST_dbl_click_cb)
-        self.SRC_LIST_lst.pack(side=LEFT)
+        self.SRC_LIST_lst.grid(column=0, row=0,columnspan=1, sticky='NWS',pady = 5)
 
         self.DST_LIST_lst = Listbox(self.SELECTION_fr)
         self.DST_LIST_lst["selectmode"] = EXTENDED
         self.DST_LIST_lst.bind('<Double-1>', self.DST_LIST_dbl_click_cb)
-        self.DST_LIST_lst.pack(side=RIGHT)
+        self.DST_LIST_lst.grid(column=5, row=0,columnspan=3, sticky='E',padx=(300,0),pady = 5)
 
         self.OPTION_fr = LabelFrame(self.SELECTION_fr, text="Operation:")
         #self.OPTION_fr.grid(column=0, row=2, columnspan=2, sticky=tk.W + tk.E)
-        self.OPTION_fr.pack(side=LEFT)
+        self.OPTION_fr.grid(column=1, row=0,columnspan=1, sticky='N',padx = 5)
 
         self.ACTION_val = StringVar()
         self.ACTION_val.set('COPY')

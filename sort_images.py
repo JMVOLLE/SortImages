@@ -409,10 +409,12 @@ class SortImages(tk.Frame):
             self.COPYMOVE_bt["state"] = DISABLED
             self.ANALYSE_bt["state"] = DISABLED
 
-            self.file_to_year_month, unique_folders = self.parse_source_folder(src)
-            self.log("%d %s" % (len(self.file_to_year_month), self.T['log1']))
-            self.log("%d %s" % (len(unique_folders), self.T['log2']))
-            for folder in unique_folders:
+            #self.file_to_year_month, unique_folders = self.parse_source_folder(src)
+            self.filesPerDestinationFolder,filescnt = self.parse_source_folder_v2(src)
+
+            self.log("%d %s" % (filescnt, self.T['log1']))
+            self.log("%d %s" % (len(self.filesPerDestinationFolder.keys()), self.T['log2']))
+            for folder in self.filesPerDestinationFolder.keys():
                 self.log(" - %s\n" % folder)
 
             # We can now populate the list with what we found (folders/images per folder)
@@ -420,14 +422,10 @@ class SortImages(tk.Frame):
             self.SRC_LIST_lst.delete(0,END)
             self.DST_LIST_lst.delete(0, END)
 
-            for folder in sorted(unique_folders):
+            for folder,files in self.filesPerDestinationFolder:
                 # count how many files will go in this folder
-                cnt = 0
-                for dest_folder in self.file_to_year_month.values():
-                    if dest_folder == folder:
-                        cnt += 1
-                folder = "%s (%d)" %(folder,cnt)
-                self.SRC_LIST_lst.insert(END, folder)
+                folderItem = "%s (%d)" %(folder,len(files))
+                self.SRC_LIST_lst.insert(END, folderItem)
 
 
             # job done, let's enable the button again
@@ -436,6 +434,8 @@ class SortImages(tk.Frame):
             if str(e) == "stopped":
                 print("thread stopped")
                 pass
+            else:
+                print (str(e))
         except:
             raise
 
@@ -566,6 +566,47 @@ class SortImages(tk.Frame):
         print("%d destination folders(s) " % len(unique_folders))
 
         return destination_folders, unique_folders
+
+
+    def parse_source_folder_v2(self, folder, verbose=True):
+        """ find jpg files in the input folder
+        :param folder: folder to parse
+        :return: destination_folders : dict destination_folder_to_create -> list of files to copy
+        :return: number of files found
+        """
+
+        # parse the input directory
+
+        jpg_files = glob.glob(folder + "\\*.jpg")
+        # windows does not care about case jpg_files = jpg_files + glob.glob(folder + "\\*.JPG")
+        jpg_files = jpg_files + glob.glob(folder + "\\*.jpeg")
+
+        jpg_files = jpg_files + glob.glob(folder + "\\*.mp4")
+
+        # return values
+        destination_folders = dict()
+        # create all entries
+
+
+        cnt = 0
+        self.update_status(self.T['status1'])
+        for file in jpg_files:
+            capture_date = self.get_capture_date(file)
+            destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
+            if destination_folders[destination] is None:
+                destination_folders[destination] = [file]
+            else:
+                destination_folders[destination].append(file)
+            if verbose:
+                self.log(("%s : %.2d %.4d \n" % (os.path.basename(file), capture_date.month, capture_date.year)))
+            cnt += 1
+            self.UpdateProgress(cnt, len(jpg_files))
+            if self.stop_thread:
+                raise Exception("stopped")
+        print("%d files found" % cnt)
+        print("%d destination folders(s) " % len(destination_folders.keys()))
+
+        return destination_folders,cnt
 
     def create_destination_folders(self,dest_root, unique_destination_folders, debug=False):
         """ create output directories if needed """

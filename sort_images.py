@@ -13,7 +13,7 @@ import os
 import threading
 import queue
 import configparser
-
+import re
 # GUI stuff
 from tkinter import *
 import tkinter as tk
@@ -307,6 +307,9 @@ class SortImages(tk.Frame):
         #In move mode delete the entry to make it clear it will be moved
         if self.ACTION_val.get() == 'MOVE':
             widget_list.delete(index)
+            label= label + " [mv]"
+        else:
+            label = label + " [cp]"
 
         # move it to the destination list after sorting again all entries
         self.add_item_to_list_widget(self.DST_LIST_lst, label)
@@ -321,6 +324,9 @@ class SortImages(tk.Frame):
         index = widget_list.curselection()  # on list double-click
         label = widget_list.get(index)
 
+        # strip the label about any information added about copy/move
+        #label = self.cleanUserSelectedItems([label])[0]
+        label = label[:-5]
         widget_list.delete(index)
 
         #put back the selection on the source side (in copy it was never removed in the first place)
@@ -415,6 +421,12 @@ class SortImages(tk.Frame):
             self.DST_LIST_lst.delete(0, END)
 
             for folder in sorted(unique_folders):
+                # count how many files will go in this folder
+                cnt = 0
+                for dest_folder in self.file_to_year_month.values():
+                    if dest_folder == folder:
+                        cnt += 1
+                folder = "%s (%d)" %(folder,cnt)
                 self.SRC_LIST_lst.insert(END, folder)
 
 
@@ -427,6 +439,15 @@ class SortImages(tk.Frame):
         except:
             raise
 
+    def cleanUserSelectedItems(self,items):
+        cleaned_items = []
+        for item in items:
+            m = re.search(r"(\d{4}/\d{2})", item)
+            if m:
+                cleaned_items.append(m.group())
+            else:
+                raise Exception("item does not contain a folder")
+        return cleaned_items
 
     def COPYMOVE_worker_thread(self):
         try:
@@ -434,8 +455,13 @@ class SortImages(tk.Frame):
             self.COPYMOVE_bt["state"] = DISABLED
 
             # retrieve the items selected for copying/moving
-            src_folders = self.SRC_LIST_lst.get(0, END)
-            dst_folders = self.DST_LIST_lst.get(0, END)
+            src_folders_list = self.SRC_LIST_lst.get(0, END)
+            dst_folders_list = self.DST_LIST_lst.get(0, END)
+
+            #clean up the list inputs (they contain some statistics about the number of
+            #files found per folder. keep only stuff that matches yyyy/mm
+            src_folders = self.cleanUserSelectedItems(src_folders_list)
+            dst_folders = self.cleanUserSelectedItems(dst_folders_list)
 
 
             self.create_destination_folders(self.dst_root, dst_folders, debug=self.debug)
@@ -493,6 +519,14 @@ class SortImages(tk.Frame):
                 capture_date = datetime.datetime.strptime(str_creation_date, '%Y:%m:%d %H:%M:%S')
                 #            print("year:%.4d" % creation_date.year)
                 #           print("month:%.2d" % creation_date.month)
+            else:
+                # exif parsing failed, let's try parsing the file name itself
+                #print ("exif parsing failed, scaning file name %s" %file_name)
+                m = re.search(r"\D?(?P<year>\d{4})\D?(?P<month>\d{2})\D?(?P<day>\d{2})\D?",file_name)
+                if m is not None:
+                    strCaptureDate = "%s:%s:%s 00:00:00" %(m.group('year'),m.group('month'),m.group('day'))
+                    capture_date = datetime.datetime.strptime(strCaptureDate, '%Y:%m:%d %H:%M:%S')
+
         return capture_date
 
     def parse_source_folder(self,folder, verbose = True):
@@ -507,6 +541,8 @@ class SortImages(tk.Frame):
         jpg_files = glob.glob(folder+"\\*.jpg")
         # windows does not care about case jpg_files = jpg_files + glob.glob(folder + "\\*.JPG")
         jpg_files = jpg_files + glob.glob(folder + "\\*.jpeg")
+
+        jpg_files = jpg_files + glob.glob(folder + "\\*.mp4")
 
         # return values
         destination_folders = dict()

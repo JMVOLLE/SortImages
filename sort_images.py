@@ -593,7 +593,7 @@ class SortImages(tk.Frame):
         for file in jpg_files:
             capture_date = self.get_capture_date(file)
             destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
-            if destination_folders[destination] is None:
+            if destination not in destination_folders:
                 destination_folders[destination] = [file]
             else:
                 destination_folders[destination].append(file)

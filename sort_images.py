@@ -259,17 +259,6 @@ class SortImages(tk.Frame):
         self.LOG_txt.tag_configure('warning', foreground='red')
         self.LOG_txt.tag_configure('info', foreground='green')
 
-        self.OPTION_fr = LabelFrame(self,text="Options")
-        self.OPTION_fr.grid(column=0, row=2, columnspan=2, sticky=tk.W+tk.E)
-
-        self.ACTION_val = StringVar()
-        self.ACTION_val.set('COPY')
-        self.ACTION_rb_cp = Radiobutton(self.OPTION_fr, text=self.T['ACTION_rb_cp'], variable=self.ACTION_val, value='COPY')
-        self.ACTION_rb_mv = Radiobutton(self.OPTION_fr, text=self.T['ACTION_rb_mv'], variable=self.ACTION_val, value='MOVE')
-        self.ACTION_rb_cp["command"] = self.ACTION_cb
-        self.ACTION_rb_mv["command"] = self.ACTION_cb
-        self.ACTION_rb_cp.pack(side=LEFT)
-        self.ACTION_rb_mv.pack(side=LEFT)
 
 
 
@@ -290,6 +279,21 @@ class SortImages(tk.Frame):
         self.DST_LIST_lst["selectmode"] = EXTENDED
         self.DST_LIST_lst.bind('<Double-1>', self.DST_LIST_dbl_click_cb)
         self.DST_LIST_lst.pack(side=RIGHT)
+
+        self.OPTION_fr = LabelFrame(self.SELECTION_fr, text="Operation:")
+        #self.OPTION_fr.grid(column=0, row=2, columnspan=2, sticky=tk.W + tk.E)
+        self.OPTION_fr.pack(side=LEFT)
+
+        self.ACTION_val = StringVar()
+        self.ACTION_val.set('COPY')
+        self.ACTION_rb_cp = Radiobutton(self.OPTION_fr, text=self.T['ACTION_rb_cp'], variable=self.ACTION_val,
+                                        value='COPY')
+        self.ACTION_rb_mv = Radiobutton(self.OPTION_fr, text=self.T['ACTION_rb_mv'], variable=self.ACTION_val,
+                                        value='MOVE')
+        self.ACTION_rb_cp["command"] = self.ACTION_cb
+        self.ACTION_rb_mv["command"] = self.ACTION_cb
+        self.ACTION_rb_cp.pack(side=TOP)
+        self.ACTION_rb_mv.pack(side=BOTTOM)
 
         self.COPYMOVE_bt = Button(self)
         self.COPYMOVE_bt["text"] = self.T['COPYMOVE_bt_cp']

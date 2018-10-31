@@ -344,6 +344,29 @@ class SortImages(tk.Frame):
         else:
             self.COPYMOVE_bt["text"] = self.T['COPYMOVE_bt_mv']
 
+        # if some folders are already selected, apply the copy/move option to them
+        indexesToDelete = []
+        selectedSrcFoldersIndexes = self.SRC_LIST_lst.curselection()
+        for index in selectedSrcFoldersIndexes:
+            label = self.SRC_LIST_lst.get(index)
+            if self.ACTION_val.get() == 'MOVE':
+                indexesToDelete.append(index)
+                label = label + " [mv]"
+            else:
+                label = label + " [cp]"
+            # move it to the destination list after sorting again all entries
+            self.add_item_to_list_widget(self.DST_LIST_lst, label)
+
+        # If move mode delete the entry to make it clear it will be moved
+        # delete in reverse order so that removing an index does not change the
+        # indexes (removing will re index)
+        for index in indexesToDelete[::-1]:
+            self.SRC_LIST_lst.delete(index)
+        # update Action button visibiliy
+        self.update_COPYMOVE_bt_state()
+
+        # clear the selection
+        self.SRC_LIST_lst.selection_clear(0,END)
 
     def SRC_cb(self):
         print("SRC callback")

@@ -24,8 +24,8 @@ _T = {
     'missing_src': {'en': 'Missing source', 'fr': 'Répertoire source manquant'},
     'missing_dst': {'en': 'Missing destination', 'fr': 'Répertoire destination manquant'},
 
-    'log1': {'en': 'images found\n', 'fr': 'images trouvés\n'},
-    'log2': {'en': 'destination folders(s) to create\n', 'fr': 'repertoires destination à créer\n'},
+    'log1': {'en': 'images/video found\n', 'fr': 'images/video trouvées\n'},
+    'log2': {'en': 'creation date found\n', 'fr': 'dates de création trouvées\n'},
     'log3': {'en': 'created', 'fr': 'créé'},
     'log4': {'en': 'already exists', 'fr': 'existe déja'},
     'log5': {'en': 'moving:', 'fr': 'deplacement:'},

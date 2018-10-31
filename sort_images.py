@@ -422,7 +422,9 @@ class SortImages(tk.Frame):
             self.SRC_LIST_lst.delete(0,END)
             self.DST_LIST_lst.delete(0, END)
 
-            for folder,files in self.filesPerDestinationFolder:
+            sortedFolders = sorted(self.filesPerDestinationFolder.keys())
+            for folder in sortedFolders:
+                files =self.filesPerDestinationFolder[folder]
                 # count how many files will go in this folder
                 folderItem = "%s (%d)" %(folder,len(files))
                 self.SRC_LIST_lst.insert(END, folderItem)
@@ -636,65 +638,70 @@ class SortImages(tk.Frame):
         """
         dest_root = self.dst_root
 
+        # evaluate the total number of files to process
+
         cnt = 0
-        total = len(self.file_to_year_month)
+        total = 0
         skipped = []
         moved = []
         copied = []
         not_selected = []
 
-        # loop on all files to be processed
-        for file in self.file_to_year_month.keys():
+        # evaluate the total number of files to process
+        for folder in self.filesPerDestinationFolder.keys():
+            total += len(self.filesPerDestinationFolder[folder])
+
+        # loop on all folders to be processed
+        for year_month in self.filesPerDestinationFolder.keys():
             # check the status of the destination folder associated to the current file
-            year_month = self.file_to_year_month[file]
-
             destination_folder = os.path.join(dest_root, year_month)
-            src_basename = os.path.basename(file)
-            destination_file =os.path.join(destination_folder,src_basename)
 
+            for file in self.filesPerDestinationFolder[year_month]:
+                src_basename = os.path.basename(file)
+                destination_file =os.path.join(destination_folder,src_basename)
 
-            # if file already exist in destination skip it
-            if os.path.exists(destination_file):
-                self.log("%s %s %s\n" % (src_basename, self.T['log7'], destination_folder), type='W')
-                skipped.append(src_basename)
-                cnt += 1
-                continue # go to next file
+                # if file already exist in destination skip it
+                if os.path.exists(destination_file):
+                    self.log("%s %s %s\n" % (src_basename, self.T['log7'], destination_folder), type='W')
+                    skipped.append(src_basename)
+                    cnt += 1
+                    continue # go to next file
 
-            #decide between copying and moving using user selected lists
-            #  check status of year month vs source and destination lists
-            # if     in source and dst       : copy
-            # if     in source and not in dst: do nothing
-            # if not in source and     in dst: move
-            # if not in source and not in dst: assert
+                #decide between copying and moving using user selected lists
+                #  check status of year month vs source and destination lists
+                # if     in source and dst       : copy
+                # if     in source and not in dst: do nothing
+                # if not in source and     in dst: move
+                # if not in source and not in dst: assert
 
-            if  year_month  in src_folders:
-                if year_month in dst_folders:
-                    if not self.debug:
-                        shutil.copy(file, destination_folder)
-                    self.log("%s %s -> %s\n" % (self.T['log6'], src_basename, destination_folder))
-                    copied.append(src_basename)
+                if  year_month  in src_folders:
+                    if year_month in dst_folders:
+                        if not self.debug:
+                            shutil.copy(file, destination_folder)
+                        self.log("%s %s -> %s\n" % (self.T['log6'], src_basename, destination_folder))
+                        copied.append(src_basename)
+                    else:
+                        self.log("%s %s %s\n" % (src_basename, self.T['log11'], destination_folder))
+                        not_selected.append(src_basename)
                 else:
-                    self.log("%s %s %s\n" % (src_basename, self.T['log11'], destination_folder))
-                    not_selected.append(src_basename)
-            else:
-                if year_month in dst_folders:
-                    if not self.debug:
-                        shutil.move(file, destination_folder)
-                    self.log("%s %s -> %s\n" % (self.T['log5'], src_basename, destination_folder))
-                    moved.append(src_basename)
-                else:
-                    raise NameError('Inconsistent src and dst lists')
+                    if year_month in dst_folders:
+                        if not self.debug:
+                            shutil.move(file, destination_folder)
+                        self.log("%s %s -> %s\n" % (self.T['log5'], src_basename, destination_folder))
+                        moved.append(src_basename)
+                    else:
+                        raise NameError('Inconsistent src and dst lists')
 
-            cnt +=1
-            self.UpdateProgress(cnt, total)
-            if self.stop_thread:
-                raise Exception("stopped")
+                cnt +=1
+                self.UpdateProgress(cnt, total)
+                if self.stop_thread:
+                    raise Exception("stopped")
 
         #time to update a status of what we did
-            self.log("%d %s\n" % (len(moved), self.T['log8']), type='I')
-            self.log("%d %s\n" % (len(copied), self.T['log9']), type='I')
-            self.log("%d %s\n" % (len(not_selected), self.T['log11']), type='I')
-            self.log("%d %s\n" % (len(skipped), self.T['log10']), type='W')
+        self.log("%d %s\n" % (len(moved), self.T['log8']), type='I')
+        self.log("%d %s\n" % (len(copied), self.T['log9']), type='I')
+        self.log("%d %s\n" % (len(not_selected), self.T['log11']), type='I')
+        self.log("%d %s\n" % (len(skipped), self.T['log10']), type='W')
 
         for file in skipped:
             self.log(" - %s\n" % file, type='W')

@@ -51,6 +51,10 @@ class SortImages(tk.Frame):
         self.LOG_queue = queue.Queue()
         self.STATUS_queue = queue.Queue()
 
+        # create thread synchronisation event
+        self.mThreadDone = threading.Event()
+        self.mThreadDone.set() #all thread done
+
         # add handler on windows closing event
         self.copymove_thread = None
         self.root.protocol("WM_DELETE_WINDOW", self.WM_DELETE_WINDOW_cb)
@@ -223,17 +227,8 @@ class SortImages(tk.Frame):
         """ Create the UI. All widgets are instanciated here"""
         self.create_menubar()
 
-        self.SRC_bt = Button(self)
-        self.SRC_bt["text"] = self.T['SRC_bt']
-        self.SRC_bt["command"] = self.SRC_cb
-        self.SRC_bt.grid(column = 0, row=0, sticky=tk.E+tk.W)
-        self.SRC_txt = Text(self)
+        #self.SRC_txt = Text(self)
 
-        self.SRC_val = StringVar()
-        self.SRC_val.set(self.T['SRC_val'])
-
-        self.SRC_entry = Entry(self, textvariable=self.SRC_val,width=32)
-        self.SRC_entry.grid(column=1, row=0, sticky='EW')
 
 
         self.DST_bt = Button(self)
@@ -267,28 +262,39 @@ class SortImages(tk.Frame):
         self.ANALYSE_bt["command"] = self.ANALYSE_cb
         self.ANALYSE_bt.grid(column=0, row=3, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
 
-        self.SELECTION_fr = LabelFrame(self,text="Selection")
-        self.SELECTION_fr.grid(column=0, row=4, columnspan=2, sticky=tk.W+tk.E)
+        self.uiSourceFrame = LabelFrame(self, text=self.T['uiSourceFrame'])
+        self.uiSourceFrame.grid(column=0, row=4, columnspan=2, sticky=tk.W + tk.E)
 
-        self.SRC_LIST_lst = Listbox(self.SELECTION_fr)
-        self.SRC_LIST_lst["selectmode"] = EXTENDED
-        self.SRC_LIST_lst.bind('<Double-1>',self.SRC_LIST_dbl_click_cb)
-        self.SRC_LIST_lst.grid(column=0, row=0,columnspan=1, sticky='NWS',pady = 5)
+        self.uiSourceButton = Button(self.uiSourceFrame)
+        self.uiSourceButton["text"] = self.T['uiSourceButton']
+        self.uiSourceButton["command"] = self.onSourceButton
+        self.uiSourceButton.grid(column = 0, row=0, sticky=tk.W)
 
-        self.DST_LIST_lst = Listbox(self.SELECTION_fr)
+        self.uiSourceValue = StringVar()
+        self.uiSourceValue.set(self.T['uiSourceValue'])
+
+        self.uiSourceEntry = Entry(self.uiSourceFrame, textvariable=self.uiSourceValue, width=32)
+        self.uiSourceEntry.grid(column=0, row=1, sticky='EW',columnspan=2)
+
+        self.uiSourceList = Listbox(self.uiSourceFrame)
+        self.uiSourceList["selectmode"] = EXTENDED
+        self.uiSourceList.bind('<Double-1>', self.onSourceListDbClick)
+        self.uiSourceList.grid(column=0, row=2, columnspan=1, sticky='NWS', pady = 5)
+
+        self.DST_LIST_lst = Listbox(self.uiSourceFrame)
         self.DST_LIST_lst["selectmode"] = EXTENDED
         self.DST_LIST_lst.bind('<Double-1>', self.DST_LIST_dbl_click_cb)
-        self.DST_LIST_lst.grid(column=5, row=0,columnspan=3, sticky='E',padx=(300,0),pady = 5)
+        self.DST_LIST_lst.grid(column=5, row=2,columnspan=3, sticky='E',padx=(300,0),pady = 5)
 
-        self.OPTION_fr = LabelFrame(self.SELECTION_fr, text="Operation:")
+        self.uiOperationFrame = LabelFrame(self.uiSourceFrame, text="Operation:")
         #self.OPTION_fr.grid(column=0, row=2, columnspan=2, sticky=tk.W + tk.E)
-        self.OPTION_fr.grid(column=1, row=0,columnspan=1, sticky='N',padx = 5)
+        self.uiOperationFrame.grid(column=1, row=2, columnspan=1, sticky='N', padx = (5,128))
 
         self.ACTION_val = StringVar()
         self.ACTION_val.set('COPY')
-        self.ACTION_rb_cp = Radiobutton(self.OPTION_fr, text=self.T['ACTION_rb_cp'], variable=self.ACTION_val,
+        self.ACTION_rb_cp = Radiobutton(self.uiOperationFrame, text=self.T['ACTION_rb_cp'], variable=self.ACTION_val,
                                         value='COPY')
-        self.ACTION_rb_mv = Radiobutton(self.OPTION_fr, text=self.T['ACTION_rb_mv'], variable=self.ACTION_val,
+        self.ACTION_rb_mv = Radiobutton(self.uiOperationFrame, text=self.T['ACTION_rb_mv'], variable=self.ACTION_val,
                                         value='MOVE')
         self.ACTION_rb_cp["command"] = self.ACTION_cb
         self.ACTION_rb_mv["command"] = self.ACTION_cb
@@ -300,17 +306,20 @@ class SortImages(tk.Frame):
         self.COPYMOVE_bt["command"] = self.COPYMOVE_cb
         self.COPYMOVE_bt.grid(column=0, row=5, columnspan=2, sticky=tk.E + tk.W + tk.N + tk.S)
 
-    def SRC_LIST_dbl_click_cb(self,event):
+    def onSourceListDbClick(self, event):
         """ add any double click item from source to dst """
 
         # retrieve the selection on src side
-        widget_list = event.widget
-        index = widget_list.curselection()  # on list double-click
-        label = widget_list.get(index)
+        uiList = event.widget
+        index = uiList.curselection()  # on list double-click
+        label = uiList.get(index)
+
+        # clear the selection
+        uiList.selection_clear(index, END)
 
         #In move mode delete the entry to make it clear it will be moved
         if self.ACTION_val.get() == 'MOVE':
-            widget_list.delete(index)
+            uiList.delete(index)
             label= label + " [mv]"
         else:
             label = label + " [cp]"
@@ -328,13 +337,14 @@ class SortImages(tk.Frame):
         index = widget_list.curselection()  # on list double-click
         label = widget_list.get(index)
 
+
         # strip the label about any information added about copy/move
         #label = self.cleanUserSelectedItems([label])[0]
         label = label[:-5]
         widget_list.delete(index)
 
         #put back the selection on the source side (in copy it was never removed in the first place)
-        self.add_item_to_list_widget(self.SRC_LIST_lst,label)
+        self.add_item_to_list_widget(self.uiSourceList, label)
 
         #update state of the action button depending on the current selection status (empty or )
         self.update_COPYMOVE_bt_state()
@@ -350,9 +360,9 @@ class SortImages(tk.Frame):
 
         # if some folders are already selected, apply the copy/move option to them
         indexesToDelete = []
-        selectedSrcFoldersIndexes = self.SRC_LIST_lst.curselection()
+        selectedSrcFoldersIndexes = self.uiSourceList.curselection()
         for index in selectedSrcFoldersIndexes:
-            label = self.SRC_LIST_lst.get(index)
+            label = self.uiSourceList.get(index)
             if self.ACTION_val.get() == 'MOVE':
                 indexesToDelete.append(index)
                 label = label + " [mv]"
@@ -365,23 +375,35 @@ class SortImages(tk.Frame):
         # delete in reverse order so that removing an index does not change the
         # indexes (removing will re index)
         for index in indexesToDelete[::-1]:
-            self.SRC_LIST_lst.delete(index)
+            self.uiSourceList.delete(index)
         # update Action button visibiliy
         self.update_COPYMOVE_bt_state()
 
         # clear the selection
-        self.SRC_LIST_lst.selection_clear(0,END)
+        self.uiSourceList.selection_clear(0, END)
 
-    def SRC_cb(self):
-        print("SRC callback")
+    def onSourceButton(self):
+
+        # kill any on going parsing thread
+        if  not self.mThreadDone.is_set():
+            self.stop_thread = True
+            self.mThreadDone.wait()
+
         folder = filedialog.askdirectory(title=self.T['SRC_cb_dlg'],
                                            mustexist=True,
                                          initialdir=self.src
                                            )
-        self.SRC_val.set(folder)
+        self.uiSourceValue.set(folder)
         self.src = folder
 
-        self.log("%s: <%s>\n" % (self.T['SRC_cb_log'], self.SRC_val.get()))
+        self.log("%s: <%s>\n" % (self.T['SRC_cb_log'], self.uiSourceValue.get()))
+
+
+        # start the source parsing thread
+        self.stop_thread = False
+        self.analyse_thread = threading.Thread(target=self.ANALYSE_worker_thread)
+        self.analyse_thread.start()
+
 
     def DST_cb(self):
         folder = filedialog.askdirectory(title=self.T['DST_cb_dlg'],
@@ -419,18 +441,21 @@ class SortImages(tk.Frame):
 
     def ANALYSE_worker_thread(self):
         try:
-            src = self.SRC_val.get()
-            dst = self.DST_val.get()
+            self.mThreadDone = threading.Event()
+            self.mThreadDone.clear() # any wait on event will be blocked
+
+            src = self.uiSourceValue.get()
+            #dst = self.DST_val.get()
 
             # validate the arguments
             if not os.path.exists(src):
                 messagebox.showerror (self.T['missing_src'], self.T['SRC_cb_dlg'])
                 return
-            if not os.path.exists(dst) :
-                messagebox.showerror (self.T['missing_dst'], self.T['DST_cb_dlg'])
-                return
+            # if not os.path.exists(dst) :
+            #     messagebox.showerror (self.T['missing_dst'], self.T['DST_cb_dlg'])
+            #     return
             self.src = src
-            self.dst_root = dst
+            #self.dst_root = dst
 
             #disable the button to be sure it will not be hit while we run
             self.COPYMOVE_bt["state"] = DISABLED
@@ -446,7 +471,7 @@ class SortImages(tk.Frame):
 
             # We can now populate the list with what we found (folders/images per folder)
             # clean previous results:
-            self.SRC_LIST_lst.delete(0,END)
+            self.uiSourceList.delete(0, END)
             self.DST_LIST_lst.delete(0, END)
 
             sortedFolders = sorted(self.filesPerDestinationFolder.keys())
@@ -454,19 +479,25 @@ class SortImages(tk.Frame):
                 files =self.filesPerDestinationFolder[folder]
                 # count how many files will go in this folder
                 folderItem = "%s (%d)" %(folder,len(files))
-                self.SRC_LIST_lst.insert(END, folderItem)
+                self.uiSourceList.insert(END, folderItem)
 
 
             # job done, let's enable the button again
             self.ANALYSE_bt["state"] = NORMAL
+            self.mThreadDone.set()
         except Exception as e:
+            self.mThreadDone.set()
             if str(e) == "stopped":
                 print("thread stopped")
+
                 pass
             else:
                 print (str(e))
         except:
+            self.mThreadDone.set()
             raise
+
+
 
     def cleanUserSelectedItems(self,items):
         cleaned_items = []
@@ -484,7 +515,7 @@ class SortImages(tk.Frame):
             self.COPYMOVE_bt["state"] = DISABLED
 
             # retrieve the items selected for copying/moving
-            src_folders_list = self.SRC_LIST_lst.get(0, END)
+            src_folders_list = self.uiSourceList.get(0, END)
             dst_folders_list = self.DST_LIST_lst.get(0, END)
 
             #clean up the list inputs (they contain some statistics about the number of

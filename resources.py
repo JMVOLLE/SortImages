@@ -5,8 +5,9 @@ __license__ = "Apache-2.0"
 
 # string resource constant
 _T = {
-    'SRC_bt': {'en': 'source folder', 'fr': 'source'},
-    'SRC_val': {'en': 'source folder', 'fr': 'répertoire source'},
+    'uiSourceButton': {'en': 'folder', 'fr': 'repertoire'},
+    'uiSourceFrame': {'en': 'Source', 'fr': 'Source'},
+    'uiSourceValue': {'en': 'source folder', 'fr': 'répertoire source'},
     'DST_bt': {'en': 'destination folder', 'fr': 'destination'},
     'DST_val': {'en': 'destination folder', 'fr': 'répertoire de destination'},
     'STATUS_txt': {'en': 'Waiting for inputs', 'fr': 'En attente de saisie utilisateur'},

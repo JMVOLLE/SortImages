@@ -231,16 +231,7 @@ class SortImages(tk.Frame):
 
 
 
-        self.DST_bt = Button(self)
-        self.DST_bt["text"] = self.T['DST_bt']
-        self.DST_bt["command"] = self.DST_cb
-        self.DST_bt.grid(column=0, row=1, sticky='EW')
 
-        self.DST_val = StringVar()
-        self.DST_val.set(self.T['DST_val'])
-
-        self.DST_entry = Entry(self, textvariable=self.DST_val)
-        self.DST_entry.grid(column=1, row=1, sticky='EW')
 
         # scrollbar: http://effbot.org/zone/tkinter-scrollbar-patterns.htm
         self.STATUS_txt = Text(self,height=1)
@@ -265,6 +256,9 @@ class SortImages(tk.Frame):
         self.uiSourceFrame = LabelFrame(self, text=self.T['uiSourceFrame'])
         self.uiSourceFrame.grid(column=0, row=4, columnspan=2, sticky=tk.W + tk.E)
 
+        self.uiDestinationFrame = LabelFrame(self, text=self.T['uiDestinationFrame'])
+        self.uiDestinationFrame.grid(column=3, row=4, columnspan=2, sticky=tk.W + tk.E)
+
         self.uiSourceButton = Button(self.uiSourceFrame)
         self.uiSourceButton["text"] = self.T['uiSourceButton']
         self.uiSourceButton["command"] = self.onSourceButton
@@ -281,10 +275,22 @@ class SortImages(tk.Frame):
         self.uiSourceList.bind('<Double-1>', self.onSourceListDbClick)
         self.uiSourceList.grid(column=0, row=2, columnspan=1, sticky='NWS', pady = 5)
 
-        self.DST_LIST_lst = Listbox(self.uiSourceFrame)
-        self.DST_LIST_lst["selectmode"] = EXTENDED
-        self.DST_LIST_lst.bind('<Double-1>', self.DST_LIST_dbl_click_cb)
-        self.DST_LIST_lst.grid(column=5, row=2,columnspan=3, sticky='E',padx=(300,0),pady = 5)
+
+        self.uiDestinationButton = Button(self.uiDestinationFrame)
+        self.uiDestinationButton["text"] = self.T['uiDestinationButton']
+        self.uiDestinationButton["command"] = self.DST_cb
+        self.uiDestinationButton.grid(column=0, row=0, sticky=tk.W)
+
+        self.uiDestinationValue = StringVar()
+        self.uiDestinationValue.set(self.T['uiDestinationValue'])
+
+        self.uiDestinationEntry = Entry(self.uiDestinationFrame, textvariable=self.uiDestinationValue)
+        self.uiDestinationEntry.grid(column=0, row=1, sticky='EW')
+
+        self.uiDestinationList = Listbox(self.uiDestinationFrame)
+        self.uiDestinationList["selectmode"] = EXTENDED
+        self.uiDestinationList.bind('<Double-1>', self.DST_LIST_dbl_click_cb)
+        self.uiDestinationList.grid(column=0, row=2, columnspan=3, sticky='E', pady = 5)
 
         self.uiOperationFrame = LabelFrame(self.uiSourceFrame, text="Operation:")
         #self.OPTION_fr.grid(column=0, row=2, columnspan=2, sticky=tk.W + tk.E)
@@ -325,7 +331,7 @@ class SortImages(tk.Frame):
             label = label + " [cp]"
 
         # move it to the destination list after sorting again all entries
-        self.add_item_to_list_widget(self.DST_LIST_lst, label)
+        self.add_item_to_list_widget(self.uiDestinationList, label)
 
         # update Action button visibiliy
         self.update_COPYMOVE_bt_state()
@@ -369,7 +375,7 @@ class SortImages(tk.Frame):
             else:
                 label = label + " [cp]"
             # move it to the destination list after sorting again all entries
-            self.add_item_to_list_widget(self.DST_LIST_lst, label)
+            self.add_item_to_list_widget(self.uiDestinationList, label)
 
         # If move mode delete the entry to make it clear it will be moved
         # delete in reverse order so that removing an index does not change the
@@ -411,9 +417,9 @@ class SortImages(tk.Frame):
                                          #initialdir=os.path.expanduser('~/.')
                                          initialdir=self.dst_root
                                          )
-        self.DST_val.set(folder)
+        self.uiDestinationValue.set(folder)
         self.dst_root = folder
-        self.log("%s: <%s>\n" % (self.T['DST_cb_log'], self.DST_val.get()))
+        self.log("%s: <%s>\n" % (self.T['DST_cb_log'], self.uiDestinationValue.get()))
 
 
     def ANALYSE_cb(self):
@@ -434,7 +440,7 @@ class SortImages(tk.Frame):
 
     def update_COPYMOVE_bt_state(self):
         """ ensure COPYMOVE_bt is enabled only if there is something to actually process"""
-        if self.DST_LIST_lst.size()> 0:
+        if self.uiDestinationList.size()> 0:
             self.COPYMOVE_bt["state"] = NORMAL
         else:
             self.COPYMOVE_bt["state"] = DISABLED
@@ -472,7 +478,7 @@ class SortImages(tk.Frame):
             # We can now populate the list with what we found (folders/images per folder)
             # clean previous results:
             self.uiSourceList.delete(0, END)
-            self.DST_LIST_lst.delete(0, END)
+            self.uiDestinationList.delete(0, END)
 
             sortedFolders = sorted(self.filesPerDestinationFolder.keys())
             for folder in sortedFolders:
@@ -516,7 +522,7 @@ class SortImages(tk.Frame):
 
             # retrieve the items selected for copying/moving
             src_folders_list = self.uiSourceList.get(0, END)
-            dst_folders_list = self.DST_LIST_lst.get(0, END)
+            dst_folders_list = self.uiDestinationList.get(0, END)
 
             #clean up the list inputs (they contain some statistics about the number of
             #files found per folder. keep only stuff that matches yyyy/mm

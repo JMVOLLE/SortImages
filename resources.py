@@ -5,11 +5,12 @@ __license__ = "Apache-2.0"
 
 # string resource constant
 _T = {
-    'uiSourceButton': {'en': 'folder', 'fr': 'repertoire'},
+    'uiSourceButton': {'en': 'folder', 'fr': 'répertoire'},
     'uiSourceFrame': {'en': 'Source', 'fr': 'Source'},
+    'uiDestinationFrame': {'en': 'Destination', 'fr': 'Destination'},
     'uiSourceValue': {'en': 'source folder', 'fr': 'répertoire source'},
-    'DST_bt': {'en': 'destination folder', 'fr': 'destination'},
-    'DST_val': {'en': 'destination folder', 'fr': 'répertoire de destination'},
+    'uiDestinationButton': {'en': 'folder', 'fr': 'répertoire'},
+    'uiDestinationValue': {'en': 'destination folder', 'fr': 'répertoire de destination'},
     'STATUS_txt': {'en': 'Waiting for inputs', 'fr': 'En attente de saisie utilisateur'},
     'ACTION_rb_cp': {'en': 'Copy', 'fr': 'Copier'},
     'ACTION_rb_mv': {'en': 'Move', 'fr': 'Déplacer'},

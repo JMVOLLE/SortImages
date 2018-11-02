@@ -51,12 +51,11 @@ class SortImages(tk.Frame):
         self.LOG_queue = queue.Queue()
         self.STATUS_queue = queue.Queue()
 
-        # create thread synchronisation event
-        self.mThreadDone = threading.Event()
-        self.mThreadDone.set() #all thread done
 
         # add handler on windows closing event
-        self.ProcessThread = None
+        self.mProcessThread = None
+        self.mAnalyzeThread = None
+
         self.root.protocol("WM_DELETE_WINDOW", self.WM_DELETE_WINDOW_cb)
 
         # state we are running then start periodical polling on the queues
@@ -72,10 +71,10 @@ class SortImages(tk.Frame):
         #config = configparser.ConfigParser()
         print("closing")
         # close any running thread:
-        if (self.ProcessThread) and self.ProcessThread.is_alive():
+        if (self.mProcessThread) and self.mProcessThread.is_alive():
             print("stopping thread")
-            self.stop_thread = True
-            self.ProcessThread.join(1.)
+            self.mStopThreadRequest = True
+            self.mProcessThread.join(1.)
         try:
             #read again the original config
             #config.read('sort_images.ini')
@@ -384,10 +383,11 @@ class SortImages(tk.Frame):
 
     def onSourceButton(self):
 
-        # kill any on going parsing thread
-        if  not self.mThreadDone.is_set():
-            self.stop_thread = True
-            self.mThreadDone.wait()
+        if (self.mAnalyzeThread) and self.mAnalyzeThread.is_alive():
+            print("stopping thread")
+            self.mStopThreadRequest = True
+            self.mAnalyzeThread.join(1.)
+
 
         folder = filedialog.askdirectory(title=self.T['SRC_cb_dlg'],
                                            mustexist=True,
@@ -400,9 +400,9 @@ class SortImages(tk.Frame):
 
 
         # start the source parsing thread
-        self.stop_thread = False
-        self.analyse_thread = threading.Thread(target=self.ANALYSE_worker_thread)
-        self.analyse_thread.start()
+        self.mStopThreadRequest = False
+        self.mAnalyzeThread = threading.Thread(target=self.ANALYSE_worker_thread)
+        self.mAnalyzeThread.start()
 
 
     def DST_cb(self):
@@ -419,9 +419,9 @@ class SortImages(tk.Frame):
 
     def onUiProcessButton(self):
         #start the worker thread
-        self.stop_thread = False
-        self.ProcessThread = threading.Thread(target=self.ProcessWorkerThread)
-        self.ProcessThread.start()
+        self.mStopThreadRequest = False
+        self.mProcessThread = threading.Thread(target=self.ProcessWorkerThread)
+        self.mProcessThread.start()
 
 
     def update_status(self, val):
@@ -436,8 +436,6 @@ class SortImages(tk.Frame):
 
     def ANALYSE_worker_thread(self):
         try:
-            self.mThreadDone = threading.Event()
-            self.mThreadDone.clear() # any wait on event will be blocked
 
             src = self.uiSourceValue.get()
             #dst = self.DST_val.get()
@@ -476,9 +474,7 @@ class SortImages(tk.Frame):
 
             # job done, let's enable the button again
             self.ANALYSE_bt["state"] = NORMAL
-            self.mThreadDone.set()
         except Exception as e:
-            self.mThreadDone.set()
             if str(e) == "stopped":
                 print("thread stopped")
 
@@ -486,7 +482,6 @@ class SortImages(tk.Frame):
             else:
                 print (str(e))
         except:
-            self.mThreadDone.set()
             raise
 
 
@@ -612,7 +607,7 @@ class SortImages(tk.Frame):
                 unique_folders.add(destination)
             cnt += 1
             self.UpdateProgress(cnt,len(jpg_files))
-            if self.stop_thread:
+            if self.mStopThreadRequest:
                 raise Exception("stopped")
         print("%d files found" % len(jpg_files))
         print("%d destination folders(s) " % len(unique_folders))
@@ -653,7 +648,7 @@ class SortImages(tk.Frame):
                 self.log(("%s : %.2d %.4d \n" % (os.path.basename(file), capture_date.month, capture_date.year)))
             cnt += 1
             self.UpdateProgress(cnt, len(jpg_files))
-            if self.stop_thread:
+            if self.mStopThreadRequest:
                 raise Exception("stopped")
         print("%d files found" % cnt)
         print("%d destination folders(s) " % len(destination_folders.keys()))
@@ -677,7 +672,7 @@ class SortImages(tk.Frame):
                 self.log("%s %s\n" % (destination_folder, self.T['log4']))
             cnt += 1
             self.UpdateProgress(cnt, len(unique_destination_folders))
-            if self.stop_thread:
+            if self.mStopThreadRequest:
                 raise Exception("stopped")
 
     def move_copy_files(self,src_folders,dst_folders):
@@ -744,7 +739,7 @@ class SortImages(tk.Frame):
 
                 cnt +=1
                 self.UpdateProgress(cnt, total)
-                if self.stop_thread:
+                if self.mStopThreadRequest:
                     raise Exception("stopped")
 
         #time to update a status of what we did

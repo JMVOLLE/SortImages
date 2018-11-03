@@ -264,7 +264,7 @@ class SortImages(tk.Frame):
         self.uiSourceFrame.grid(column=0, row=0, sticky=tk.W)
 
         self.uiDestinationFrame = LabelFrame(self, text=self.T['uiDestinationFrame'])
-        self.uiDestinationFrame.grid(column=1, row=0, sticky=tk.W + tk.E)
+        self.uiDestinationFrame.grid(column=1, row=0, sticky=tk.W)
 
         self.uiSourceButton = Button(self.uiSourceFrame)
         self.uiSourceButton["text"] = self.T['uiSourceButton']
@@ -313,11 +313,11 @@ class SortImages(tk.Frame):
         self.uiOperationMoveRadioButton["command"] = self.onOperationRadioButton
         self.uiOperationCopyRadioButton.pack(side=TOP)
         self.uiOperationMoveRadioButton.pack(side=BOTTOM)
-
+ 
         self.uiProcessButton = Button(self)
         self.uiProcessButton["text"] = self.T['uiProcessButton']
         self.uiProcessButton["command"] = self.onProcessButton
-        self.uiProcessButton.grid(column=2, row=0, sticky='EWNS')
+        self.uiProcessButton.grid(column=2, row=0, sticky='WNS')
 
     def onSourceListDbClick(self, event):
         """ add any double click item from source to dst """
@@ -340,8 +340,6 @@ class SortImages(tk.Frame):
         # move it to the destination list after sorting again all entries
         self.add_item_to_list_widget(self.uiDestinationList, label)
 
-        # update Action button visibiliy
-        self.update_COPYMOVE_bt_state()
 
     def onDestinationListDoubleClick(self, event):
         """ remove any double clicked item"""
@@ -359,8 +357,6 @@ class SortImages(tk.Frame):
         #put back the selection on the source side (in copy it was never removed in the first place)
         self.add_item_to_list_widget(self.uiSourceList, label)
 
-        #update state of the action button depending on the current selection status (empty or )
-        self.update_COPYMOVE_bt_state()
 
 
     def onOperationRadioButton(self):
@@ -387,8 +383,6 @@ class SortImages(tk.Frame):
         # indexes (removing will re index)
         for index in indexesToDelete[::-1]:
             self.uiSourceList.delete(index)
-        # update Action button visibiliy
-        self.update_COPYMOVE_bt_state()
 
         # clear the selection
         self.uiSourceList.selection_clear(0, END)
@@ -400,6 +394,10 @@ class SortImages(tk.Frame):
             print("stopping thread")
             self.mStopThreadRequest = True
             self.mAnalyzeThread.join(1.)
+
+        # reset the source and destination lists
+        self.uiSourceList.delete(0, END)
+        self.uiDestinationList.delete(0, END)
 
         #query user for a new source folder
         folder = filedialog.askdirectory(title=self.T['SRC_cb_dlg'],
@@ -440,12 +438,6 @@ class SortImages(tk.Frame):
     def update_status(self, val):
         self.mStatusQueue.put(val)
 
-    def update_COPYMOVE_bt_state(self):
-        """ ensure COPYMOVE_bt is enabled only if there is something to actually process"""
-        if self.uiDestinationList.size()> 0:
-            self.uiProcessButton["state"] = NORMAL
-        else:
-            self.uiProcessButton["state"] = DISABLED
 
     def AnalyzeWorkerThread(self):
         try:
@@ -667,7 +659,6 @@ class SortImages(tk.Frame):
         """ create output directories if needed """
 
         self.update_status(self.T['status2'])
-        progress_inc = round(len(unique_destination_folders) / 10)
         cnt = 0
         for folder in unique_destination_folders:
             #destination_folder = "%s\%s" % (dest_root, folder)
@@ -700,6 +691,8 @@ class SortImages(tk.Frame):
         copied = []
         not_selected = []
 
+        # update status message
+        self.update_status(self.T['status3'])
         # evaluate the total number of files to process
         for folder in self.mFilesPerDestinationFolder.keys():
             total += len(self.mFilesPerDestinationFolder[folder])

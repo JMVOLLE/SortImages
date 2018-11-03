@@ -39,7 +39,7 @@ _T = {
     'log11': {'en': 'not selected', 'fr': 'non selectionné'},
     'status1': {'en': 'analyzing source folder', 'fr': 'analyze du répertoire source'},
     'status2': {'en': 'Creating destination folder(s)', 'fr': 'création des repertoires de destination'},
-    'status3': {'en': 'Moving images', 'fr': 'Déplacement des images'},
+    'status3': {'en': 'Coping/Moving images', 'fr': 'Copie/Déplacement des images'},
     'status4': {'en': 'Copying files', 'fr': 'Recopie des images'},
     'file': {'en': 'File', 'fr': 'Fichier'},
     'quit': {'en': 'Quit', 'fr': 'Quitter'},

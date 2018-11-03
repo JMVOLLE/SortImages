@@ -15,7 +15,7 @@ _T = {
     'ACTION_rb_cp': {'en': 'Copy', 'fr': 'Copier'},
     'ACTION_rb_mv': {'en': 'Move', 'fr': 'Déplacer'},
     'ACTION_val': {'en': 'Copy', 'fr': 'Copier'},
-    'uiProcessButton': {'en': '>', 'fr': '>'},
+    'uiProcessButton': {'en': 'go', 'fr': 'executer'},
     'COPYMOVE_bt_mv': {'en': 'MOVE', 'fr': 'DEPLACER'},
     'ANALYSE_bt': {'en': 'ANALYSE', 'fr': 'ANALYSER'},
     'SRC_cb_dlg': {'en': 'Please select Images source folder', 'fr': "Choisissez le répertoire source s'il vous plait"},

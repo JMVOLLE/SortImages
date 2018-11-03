@@ -33,7 +33,12 @@ class SortImages(tk.Frame):
         tk.Frame.__init__(self, master)
 
         # retrieve config based information
-        self.config = self.read_configuration()
+
+        #init informations expected from the user or the history
+        self.mSourceFolder = None
+        self.mDestinationFolder = None
+
+        self.config = self.ReadConfigurationFile()
 
         #load translations:
         self.T = R.T(self.lang)
@@ -45,21 +50,22 @@ class SortImages(tk.Frame):
         self.root.title(title)
 
         self.grid()
-        self.create_ui()
+        self.CreateUi()
 
         # Create queues for updating  STATUS_txt and LOG_txt
-        self.LOG_queue = queue.Queue()
-        self.STATUS_queue = queue.Queue()
+        self.mLogQueue = queue.Queue()
+        self.mStatusQueue = queue.Queue()
 
 
         # add handler on windows closing event
         self.mProcessThread = None
         self.mAnalyzeThread = None
 
+
         self.root.protocol("WM_DELETE_WINDOW", self.WM_DELETE_WINDOW_cb)
 
         # state we are running then start periodical polling on the queues
-        self.do_periodic_refresh()
+        self.RefreshUiTask()
 
     def WM_DELETE_WINDOW_cb(self):
         """ Termination handler
@@ -94,7 +100,7 @@ class SortImages(tk.Frame):
 
         self.root.destroy()
 
-    def read_configuration(self):
+    def ReadConfigurationFile(self):
         config = configparser.ConfigParser()
         try:
             config.read('sort_images.ini')
@@ -107,7 +113,6 @@ class SortImages(tk.Frame):
                 self.mDestinationFolder = history['DST']
             else:
                 self.mSourceFolder = os.path.expanduser('~/.')
-                self.mDestinationFolder = os.path.expanduser('~/.')
             return config
         except Exception as e:
             self.lang = 'en'
@@ -116,59 +121,66 @@ class SortImages(tk.Frame):
             pass
         return None
 
-    def do_periodic_refresh(self):
+    def RefreshUiTask(self):
         """
             Check every 100 ms if there is something new in the queue.
         """
-        self.LOG_update()
-        self.STATUS_update()
-        self.master.after(100, self.do_periodic_refresh)
+        self.UpdateLogText()
+        self.UpdateStatusText()
+
+        # update the visibility on the process button based on informations set byt the user so far
+        if self.mDestinationFolder and len(self.uiDestinationList.get(0,END)) > 0:
+            self.uiProcessButton["state"] = NORMAL
+        else:
+            self.uiProcessButton["state"] = DISABLED
+
+        self.master.after(100, self.RefreshUiTask)
 
     def log(self, val, type=''):
         if type == 'I':
-            self.LOG_queue.put("I:%s" % val)
+            self.mLogQueue.put("I:%s" % val)
         elif type == 'W':
-            self.LOG_queue.put("W:%s" %val)
+            self.mLogQueue.put("W:%s" % val)
         elif type == 'E':
-            self.LOG_queue.put("E:%s" %val)
+            self.mLogQueue.put("E:%s" % val)
         else:
-            self.LOG_queue.put(val)
+            self.mLogQueue.put(val)
 
-    def LOG_update(self):
-        while self.LOG_queue.qsize():
+    def UpdateLogText(self):
+        while self.mLogQueue.qsize():
             try:
-                msg = self.LOG_queue.get(0)
+                msg = self.mLogQueue.get(0)
                 # Check contents of message and do what it says
                 # As a test, we simply print it
-                self.LOG_txt.configure(state='normal')
+                self.uiLogText.configure(state='normal')
                 if msg.startswith('E:'):
-                    self.LOG_txt.insert(END, msg[2:],'error')
+                    self.uiLogText.insert(END, msg[2:], 'error')
                 elif msg.startswith('W:'):
-                    self.LOG_txt.insert(END, msg[2:],'warning')
+                    self.uiLogText.insert(END, msg[2:], 'warning')
                 elif msg.startswith('I:'):
-                    self.LOG_txt.insert(END, msg[2:],'info')
+                    self.uiLogText.insert(END, msg[2:], 'info')
                 else:
-                    self.LOG_txt.insert(END, msg)
+                    self.uiLogText.insert(END, msg)
 
-                self.LOG_txt.see(END)
-                self.LOG_txt.configure(state='disabled')
+                self.uiLogText.see(END)
+                self.uiLogText.configure(state='disabled')
             except queue.Empty:
                 pass
 
     def UpdateProgress(self,current,max):
         if current >= max:
-            self.STATUS_queue.put("f")
+            self.mStatusQueue.put("f")
             return
         progress_inc = round(max / 20)
         if progress_inc == 0:
             progress_inc = 1
         if (current % progress_inc) == 0:
-            self.STATUS_queue.put("+")
+            self.mStatusQueue.put("+")
 
-    def STATUS_update(self):
-        while self.STATUS_queue.qsize():
+    def UpdateStatusText(self):
+        while self.mStatusQueue.qsize():
             try:
-                msg = self.STATUS_queue.get(0)
+                msg = self.mStatusQueue.get(0)
                 self.uiStatusText.configure(state='normal')
                 if msg == "+":
                     # increment by one the counter
@@ -222,7 +234,7 @@ class SortImages(tk.Frame):
 
         self.root.config(menu=menu_bar)
 
-    def create_ui(self):
+    def CreateUi(self):
         """ Create the UI. All widgets are instanciated here"""
         self.create_menubar()
 
@@ -238,11 +250,11 @@ class SortImages(tk.Frame):
         self.uiStatusText.insert("1.0", self.T['uiStatusText'])
         #self.Status("Waiting for inputs")
 
-        self.LOG_txt =Text(self)
-        self.LOG_txt.grid(column=0, row=2,columnspan=3)
-        self.LOG_txt.tag_configure('error', background='red')
-        self.LOG_txt.tag_configure('warning', foreground='red')
-        self.LOG_txt.tag_configure('info', foreground='green')
+        self.uiLogText =Text(self)
+        self.uiLogText.grid(column=0, row=2, columnspan=3)
+        self.uiLogText.tag_configure('error', background='red')
+        self.uiLogText.tag_configure('warning', foreground='red')
+        self.uiLogText.tag_configure('info', foreground='green')
 
 
 
@@ -252,7 +264,7 @@ class SortImages(tk.Frame):
         self.uiSourceFrame.grid(column=0, row=0, sticky=tk.W)
 
         self.uiDestinationFrame = LabelFrame(self, text=self.T['uiDestinationFrame'])
-        self.uiDestinationFrame.grid(column=2, row=0, sticky=tk.W + tk.E)
+        self.uiDestinationFrame.grid(column=1, row=0, sticky=tk.W + tk.E)
 
         self.uiSourceButton = Button(self.uiSourceFrame)
         self.uiSourceButton["text"] = self.T['uiSourceButton']
@@ -260,7 +272,7 @@ class SortImages(tk.Frame):
         self.uiSourceButton.grid(column = 0, row=0, sticky=tk.W)
 
         self.uiSourceValue = StringVar()
-        self.uiSourceValue.set(self.T['uiSourceValue'])
+        self.uiSourceValue.set(self.mSourceFolder)
 
         self.uiSourceEntry = Entry(self.uiSourceFrame, textvariable=self.uiSourceValue, width=40)
         self.uiSourceEntry.grid(column=0, row=1,columnspan=2)
@@ -268,24 +280,24 @@ class SortImages(tk.Frame):
         self.uiSourceList = Listbox(self.uiSourceFrame)
         self.uiSourceList["selectmode"] = EXTENDED
         self.uiSourceList.bind('<Double-1>', self.onSourceListDbClick)
-        self.uiSourceList.grid(column=0, row=2, columnspan=1, sticky='NWES', pady = 5)
+        self.uiSourceList.grid(column=0, row=2, sticky='NWES', pady = 5)
 
 
         self.uiDestinationButton = Button(self.uiDestinationFrame)
         self.uiDestinationButton["text"] = self.T['uiDestinationButton']
-        self.uiDestinationButton["command"] = self.DST_cb
+        self.uiDestinationButton["command"] = self.onDestinationButton
         self.uiDestinationButton.grid(column=0, row=0, sticky=tk.W)
 
         self.uiDestinationValue = StringVar()
-        self.uiDestinationValue.set(self.T['uiDestinationValue'])
+        self.uiDestinationValue.set(self.mDestinationFolder)
 
-        self.uiDestinationEntry = Entry(self.uiDestinationFrame, textvariable=self.uiDestinationValue)
+        self.uiDestinationEntry = Entry(self.uiDestinationFrame, textvariable=self.uiDestinationValue, width=40)
         self.uiDestinationEntry.grid(column=0, row=1, sticky='EW')
 
         self.uiDestinationList = Listbox(self.uiDestinationFrame)
         self.uiDestinationList["selectmode"] = EXTENDED
         self.uiDestinationList.bind('<Double-1>', self.DST_LIST_dbl_click_cb)
-        self.uiDestinationList.grid(column=0, row=2, columnspan=3, sticky='E', pady = 5)
+        self.uiDestinationList.grid(column=0, row=2, sticky='W', pady = 5)
 
         self.uiOperationFrame = LabelFrame(self.uiSourceFrame, text="Operation:")
         #self.OPTION_fr.grid(column=0, row=2, columnspan=2, sticky=tk.W + tk.E)
@@ -304,8 +316,8 @@ class SortImages(tk.Frame):
 
         self.uiProcessButton = Button(self)
         self.uiProcessButton["text"] = self.T['uiProcessButton']
-        self.uiProcessButton["command"] = self.onUiProcessButton
-        self.uiProcessButton.grid(column=1, row=0, sticky='EWNS')
+        self.uiProcessButton["command"] = self.onProcessButton
+        self.uiProcessButton.grid(column=2, row=0, sticky='EWNS')
 
     def onSourceListDbClick(self, event):
         """ add any double click item from source to dst """
@@ -405,7 +417,7 @@ class SortImages(tk.Frame):
         self.mAnalyzeThread.start()
 
 
-    def DST_cb(self):
+    def onDestinationButton(self):
         folder = filedialog.askdirectory(title=self.T['DST_cb_dlg'],
                                          mustexist=True,
                                          #initialdir=os.path.expanduser('~/.')
@@ -417,7 +429,7 @@ class SortImages(tk.Frame):
 
 
 
-    def onUiProcessButton(self):
+    def onProcessButton(self):
         #start the worker thread
         self.mStopThreadRequest = False
         self.mProcessThread = threading.Thread(target=self.ProcessWorkerThread)
@@ -425,7 +437,7 @@ class SortImages(tk.Frame):
 
 
     def update_status(self, val):
-        self.STATUS_queue.put(val)
+        self.mStatusQueue.put(val)
 
     def update_COPYMOVE_bt_state(self):
         """ ensure COPYMOVE_bt is enabled only if there is something to actually process"""
@@ -473,7 +485,7 @@ class SortImages(tk.Frame):
 
 
             # job done, let's enable the button again
-            self.ANALYSE_bt["state"] = NORMAL
+            self.uiProcessButton["state"] = NORMAL
         except Exception as e:
             if str(e) == "stopped":
                 print("thread stopped")
@@ -513,11 +525,6 @@ class SortImages(tk.Frame):
 
             self.create_destination_folders(self.mDestinationFolder, dst_folders, debug=self.debug)
 
-            action = self.uiOperationValue.get()
-            if action == 'MOVE':
-                move_arg = True
-            else:
-                move_arg = False
             self.move_copy_files(src_folders,dst_folders)
 
             #job done, let's enable the button again
@@ -567,7 +574,7 @@ class SortImages(tk.Frame):
                 #            print("year:%.4d" % creation_date.year)
                 #           print("month:%.2d" % creation_date.month)
             else:
-                # exif parsing failed, let's try parsing the file name itself
+                # exif parsing failed, let's try interpreting the file name itself
                 #print ("exif parsing failed, scaning file name %s" %file_name)
                 m = re.search(r"\D?(?P<year>\d{4})\D?(?P<month>\d{2})\D?(?P<day>\d{2})\D?",file_name)
                 if m is not None:

@@ -136,7 +136,7 @@ class SortImages(tk.Frame):
 
         self.master.after(100, self.RefreshUiTask)
 
-    def log(self, val, type=''):
+    def Log(self, val, type=''):
         if type == 'I':
             self.mLogQueue.put("I:%s" % val)
         elif type == 'W':
@@ -191,14 +191,14 @@ class SortImages(tk.Frame):
                     self.uiStatusText.mark_set("progress", position)
                 elif msg == "f" :
                     #display full counter
-                    self.uiStatusText.delete(self.STATUS_progress_start, END)
+                    self.uiStatusText.delete(self.mStatusTextProgressPosition, END)
                     self.uiStatusText.insert(END, "OOOOOOOOOOOOOOOOOOOO")
                 else:
                     self.uiStatusText.delete("0.0", END)
                     self.uiStatusText.insert("0.0", msg + ": ")
                     start = self.uiStatusText.index("1.end")
                     self.uiStatusText.mark_set("progress", start)
-                    self.STATUS_progress_start = start
+                    self.mStatusTextProgressPosition = start
                     self.uiStatusText.mark_gravity("progress", LEFT)
                     self.uiStatusText.insert(END, "....................")
 
@@ -296,7 +296,7 @@ class SortImages(tk.Frame):
 
         self.uiDestinationList = Listbox(self.uiDestinationFrame)
         self.uiDestinationList["selectmode"] = EXTENDED
-        self.uiDestinationList.bind('<Double-1>', self.DST_LIST_dbl_click_cb)
+        self.uiDestinationList.bind('<Double-1>', self.onDestinationListDoubleClick)
         self.uiDestinationList.grid(column=0, row=2, sticky='W', pady = 5)
 
         self.uiOperationFrame = LabelFrame(self.uiSourceFrame, text="Operation:")
@@ -343,7 +343,7 @@ class SortImages(tk.Frame):
         # update Action button visibiliy
         self.update_COPYMOVE_bt_state()
 
-    def DST_LIST_dbl_click_cb(self,event):
+    def onDestinationListDoubleClick(self, event):
         """ remove any double clicked item"""
         # retrieve the selection on src side
         widget_list = event.widget
@@ -395,12 +395,13 @@ class SortImages(tk.Frame):
 
     def onSourceButton(self):
 
+        # stop any on going analysis thread
         if (self.mAnalyzeThread) and self.mAnalyzeThread.is_alive():
             print("stopping thread")
             self.mStopThreadRequest = True
             self.mAnalyzeThread.join(1.)
 
-
+        #query user for a new source folder
         folder = filedialog.askdirectory(title=self.T['SRC_cb_dlg'],
                                            mustexist=True,
                                          initialdir=self.mSourceFolder
@@ -408,12 +409,12 @@ class SortImages(tk.Frame):
         self.uiSourceValue.set(folder)
         self.mSourceFolder = folder
 
-        self.log("%s: <%s>\n" % (self.T['SRC_cb_log'], self.uiSourceValue.get()))
+        self.Log("%s: <%s>\n" % (self.T['SRC_cb_log'], self.uiSourceValue.get()))
 
 
         # start the source parsing thread
         self.mStopThreadRequest = False
-        self.mAnalyzeThread = threading.Thread(target=self.ANALYSE_worker_thread)
+        self.mAnalyzeThread = threading.Thread(target=self.AnalyzeWorkerThread)
         self.mAnalyzeThread.start()
 
 
@@ -425,7 +426,7 @@ class SortImages(tk.Frame):
                                          )
         self.uiDestinationValue.set(folder)
         self.mDestinationFolder = folder
-        self.log("%s: <%s>\n" % (self.T['DST_cb_log'], self.uiDestinationValue.get()))
+        self.Log("%s: <%s>\n" % (self.T['DST_cb_log'], self.uiDestinationValue.get()))
 
 
 
@@ -446,7 +447,7 @@ class SortImages(tk.Frame):
         else:
             self.uiProcessButton["state"] = DISABLED
 
-    def ANALYSE_worker_thread(self):
+    def AnalyzeWorkerThread(self):
         try:
 
             src = self.uiSourceValue.get()
@@ -464,21 +465,21 @@ class SortImages(tk.Frame):
             #disable the button to be sure it will not be hit while we run
             self.uiProcessButton["state"] = DISABLED
 
-            self.filesPerDestinationFolder,filescnt = self.parse_source_folder_v2(src)
+            self.mFilesPerDestinationFolder, filescnt = self.parse_source_folder_v2(src)
 
-            self.log("%d %s" % (filescnt, self.T['log1']))
-            self.log("%d %s" % (len(self.filesPerDestinationFolder.keys()), self.T['log2']))
-            for folder in self.filesPerDestinationFolder.keys():
-                self.log(" - %s\n" % folder)
+            self.Log("%d %s" % (filescnt, self.T['log1']))
+            self.Log("%d %s" % (len(self.mFilesPerDestinationFolder.keys()), self.T['log2']))
+            for folder in self.mFilesPerDestinationFolder.keys():
+                self.Log(" - %s\n" % folder)
 
             # We can now populate the list with what we found (folders/images per folder)
             # clean previous results:
             self.uiSourceList.delete(0, END)
             self.uiDestinationList.delete(0, END)
 
-            sortedFolders = sorted(self.filesPerDestinationFolder.keys())
+            sortedFolders = sorted(self.mFilesPerDestinationFolder.keys())
             for folder in sortedFolders:
-                files =self.filesPerDestinationFolder[folder]
+                files =self.mFilesPerDestinationFolder[folder]
                 # count how many files will go in this folder
                 folderItem = "%s (%d)" %(folder,len(files))
                 self.uiSourceList.insert(END, folderItem)
@@ -498,7 +499,7 @@ class SortImages(tk.Frame):
 
 
 
-    def cleanUserSelectedItems(self,items):
+    def CleanUserSelectedItems(self, items):
         cleaned_items = []
         for item in items:
             m = re.search(r"(\d{4}/\d{2})", item)
@@ -519,13 +520,13 @@ class SortImages(tk.Frame):
 
             #clean up the list inputs (they contain some statistics about the number of
             #files found per folder. keep only stuff that matches yyyy/mm
-            src_folders = self.cleanUserSelectedItems(src_folders_list)
-            dst_folders = self.cleanUserSelectedItems(dst_folders_list)
+            src_folders = self.CleanUserSelectedItems(src_folders_list)
+            dst_folders = self.CleanUserSelectedItems(dst_folders_list)
 
 
-            self.create_destination_folders(self.mDestinationFolder, dst_folders, debug=self.debug)
+            self.CreateDestinationFolders(self.mDestinationFolder, dst_folders, debug=self.debug)
 
-            self.move_copy_files(src_folders,dst_folders)
+            self.ProcessFiles(src_folders, dst_folders)
 
             #job done, let's enable the button again
             self.uiProcessButton["state"] = NORMAL
@@ -609,7 +610,7 @@ class SortImages(tk.Frame):
             destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
             destination_folders[file] = destination
             if verbose:
-                self.log(("%s : %.2d %.4d \n" % (os.path.basename(file),capture_date.month,capture_date.year)))
+                self.Log(("%s : %.2d %.4d \n" % (os.path.basename(file), capture_date.month, capture_date.year)))
             if destination not in unique_folders:
                 unique_folders.add(destination)
             cnt += 1
@@ -652,7 +653,7 @@ class SortImages(tk.Frame):
             else:
                 destination_folders[destination].append(file)
             if verbose:
-                self.log(("%s : %.2d %.4d \n" % (os.path.basename(file), capture_date.month, capture_date.year)))
+                self.Log(("%s : %.2d %.4d \n" % (os.path.basename(file), capture_date.month, capture_date.year)))
             cnt += 1
             self.UpdateProgress(cnt, len(jpg_files))
             if self.mStopThreadRequest:
@@ -662,7 +663,7 @@ class SortImages(tk.Frame):
 
         return destination_folders,cnt
 
-    def create_destination_folders(self,dest_root, unique_destination_folders, debug=False):
+    def CreateDestinationFolders(self, dest_root, unique_destination_folders, debug=False):
         """ create output directories if needed """
 
         self.update_status(self.T['status2'])
@@ -672,17 +673,17 @@ class SortImages(tk.Frame):
             #destination_folder = "%s\%s" % (dest_root, folder)
             destination_folder = os.path.join(dest_root,folder)
             if not os.path.exists(destination_folder):
-                self.log("%s %s\n" % (destination_folder, self.T['log3']))
+                self.Log("%s %s\n" % (destination_folder, self.T['log3']))
                 if not debug:
                     os.makedirs(destination_folder)
             else:
-                self.log("%s %s\n" % (destination_folder, self.T['log4']))
+                self.Log("%s %s\n" % (destination_folder, self.T['log4']))
             cnt += 1
             self.UpdateProgress(cnt, len(unique_destination_folders))
             if self.mStopThreadRequest:
                 raise Exception("stopped")
 
-    def move_copy_files(self,src_folders,dst_folders):
+    def ProcessFiles(self, src_folders, dst_folders):
         """ move files to where they belong
         :param destination_folders: a file name ordered dict of destination folders
         :param move: boolean for moving vs copying
@@ -700,21 +701,21 @@ class SortImages(tk.Frame):
         not_selected = []
 
         # evaluate the total number of files to process
-        for folder in self.filesPerDestinationFolder.keys():
-            total += len(self.filesPerDestinationFolder[folder])
+        for folder in self.mFilesPerDestinationFolder.keys():
+            total += len(self.mFilesPerDestinationFolder[folder])
 
         # loop on all folders to be processed
-        for year_month in self.filesPerDestinationFolder.keys():
+        for year_month in self.mFilesPerDestinationFolder.keys():
             # check the status of the destination folder associated to the current file
             destination_folder = os.path.join(dest_root, year_month)
 
-            for file in self.filesPerDestinationFolder[year_month]:
+            for file in self.mFilesPerDestinationFolder[year_month]:
                 src_basename = os.path.basename(file)
                 destination_file =os.path.join(destination_folder,src_basename)
 
                 # if file already exist in destination skip it
                 if os.path.exists(destination_file):
-                    self.log("%s %s %s\n" % (src_basename, self.T['log7'], destination_folder), type='W')
+                    self.Log("%s %s %s\n" % (src_basename, self.T['log7'], destination_folder), type='W')
                     skipped.append(src_basename)
                     cnt += 1
                     continue # go to next file
@@ -730,16 +731,16 @@ class SortImages(tk.Frame):
                     if year_month in dst_folders:
                         if not self.debug:
                             shutil.copy(file, destination_folder)
-                        self.log("%s %s -> %s\n" % (self.T['log6'], src_basename, destination_folder))
+                        self.Log("%s %s -> %s\n" % (self.T['log6'], src_basename, destination_folder))
                         copied.append(src_basename)
                     else:
-                        self.log("%s %s %s\n" % (src_basename, self.T['log11'], destination_folder))
+                        self.Log("%s %s %s\n" % (src_basename, self.T['log11'], destination_folder))
                         not_selected.append(src_basename)
                 else:
                     if year_month in dst_folders:
                         if not self.debug:
                             shutil.move(file, destination_folder)
-                        self.log("%s %s -> %s\n" % (self.T['log5'], src_basename, destination_folder))
+                        self.Log("%s %s -> %s\n" % (self.T['log5'], src_basename, destination_folder))
                         moved.append(src_basename)
                     else:
                         raise NameError('Inconsistent src and dst lists')
@@ -750,13 +751,13 @@ class SortImages(tk.Frame):
                     raise Exception("stopped")
 
         #time to update a status of what we did
-        self.log("%d %s\n" % (len(moved), self.T['log8']), type='I')
-        self.log("%d %s\n" % (len(copied), self.T['log9']), type='I')
-        self.log("%d %s\n" % (len(not_selected), self.T['log11']), type='I')
-        self.log("%d %s\n" % (len(skipped), self.T['log10']), type='W')
+        self.Log("%d %s\n" % (len(moved), self.T['log8']), type='I')
+        self.Log("%d %s\n" % (len(copied), self.T['log9']), type='I')
+        self.Log("%d %s\n" % (len(not_selected), self.T['log11']), type='I')
+        self.Log("%d %s\n" % (len(skipped), self.T['log10']), type='W')
 
         for file in skipped:
-            self.log(" - %s\n" % file, type='W')
+            self.Log(" - %s\n" % file, type='W')
 
 
 if __name__ == "__main__":

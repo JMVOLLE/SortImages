@@ -532,21 +532,32 @@ class SortImages(tk.Frame):
             raise
 
 
-    def AddItemToUiList(self, widget, item):
+    def AddItemToUiList(self, widget, aItemToAdd):
         # move it to the destination list after sorting again all entries
-        current_items = widget.get(0,END)
+        currentItems = widget.get(0,END)
 
-        updated_items = [item]
-        for item in current_items:
-            updated_items.append(item)
+        # in order to not have same entry in copy and move mode
+        # we look if the item already "exists" in the list
 
-        updated_items.sort()
+        cleanedItems = self.CleanUserSelectedItems(currentItems)
+        cleanedItemToAdd = self.CleanUserSelectedItems([aItemToAdd])[0]
+
+        updatedItems = list(currentItems)
+        if cleanedItemToAdd not in cleanedItems:
+            updatedItems.append(aItemToAdd)
+        else:
+            originalPosition = cleanedItems.index(cleanedItemToAdd)
+            updatedItems[originalPosition] = aItemToAdd
+
+
+        # sort the list so that added items is logically positioned
+        # with respect to year/month ordering
+        updatedItems.sort()
 
         #update widget list ensuring no dupplicates are added
         widget.delete(0,END)
-        for item in updated_items:
-            if widget.get(END) != item:
-                widget.insert(END,item)
+        for item in updatedItems:
+            widget.insert(END,item)
 
 
     def get_capture_date(self,file_name):

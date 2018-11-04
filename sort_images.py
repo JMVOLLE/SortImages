@@ -45,7 +45,7 @@ class SortImages(tk.Frame):
 
         self.root = master
         title = "Sort Images "
-        if self.debug:
+        if self.mDebugFlag:
             title += "- Debug"
         self.root.title(title)
 
@@ -106,7 +106,7 @@ class SortImages(tk.Frame):
             config.read('sort_images.ini')
             setup = config['SETUP']
             self.lang = setup.get('LANG','en')
-            self.debug = setup.getboolean('DEBUG', False)
+            self.mDebugFlag = setup.getboolean('DEBUG', False)
             if config.has_section('HISTORY'):
                 history = config['HISTORY']
                 self.mSourceFolder = history['SRC']
@@ -116,7 +116,7 @@ class SortImages(tk.Frame):
             return config
         except Exception as e:
             self.lang = 'en'
-            self.debug = False
+            self.mDebugFlag = False
             print ("Error parsing config file\n")
             pass
         return None
@@ -207,7 +207,7 @@ class SortImages(tk.Frame):
                 pass
 
 
-    def display_about(self):
+    def DisplayAbout(self):
         about_txt = """
         Sort Images Revision %s
         %s
@@ -229,7 +229,7 @@ class SortImages(tk.Frame):
 
 
         help_menu = Menu(menu_bar, tearoff=0)
-        help_menu.add_command(label=self.T['about'], command=self.display_about)
+        help_menu.add_command(label=self.T['about'], command=self.DisplayAbout)
         menu_bar.add_cascade(label=self.T['help'], menu=help_menu)
 
         self.root.config(menu=menu_bar)
@@ -454,7 +454,7 @@ class SortImages(tk.Frame):
             #disable the button to be sure it will not be hit while we run
             self.uiProcessButton["state"] = DISABLED
 
-            self.mFilesPerDestinationFolder, filescnt = self.parse_source_folder_v2(src)
+            self.mFilesPerDestinationFolder, filescnt = self.ParseSourceFolder(src)
 
             self.Log("%d %s" % (filescnt, self.T['log1']))
             self.Log("%d %s" % (len(self.mFilesPerDestinationFolder.keys()), self.T['log2']))
@@ -489,6 +489,11 @@ class SortImages(tk.Frame):
 
 
     def CleanUserSelectedItems(self, items):
+        """ strip a list selected item from () and [mv]/[cp] information
+            :param items: items to clean
+            :return: cleaned items
+        """
+
         cleaned_items = []
         for item in items:
             m = re.search(r"(\d{4}/\d{2})", item)
@@ -513,7 +518,7 @@ class SortImages(tk.Frame):
             dst_folders = self.CleanUserSelectedItems(dst_folders_list)
 
 
-            self.CreateDestinationFolders(self.mDestinationFolder, dst_folders, debug=self.debug)
+            self.CreateDestinationFolders(self.mDestinationFolder, dst_folders, debug=self.mDebugFlag)
 
             self.ProcessFiles(src_folders, dst_folders)
 
@@ -573,46 +578,8 @@ class SortImages(tk.Frame):
 
         return capture_date
 
-    def parse_source_folder(self,folder, verbose = True):
-        """ find jpg files in the input folder
-        :param folder: folder to parse
-        :return: destination_folders : dict of relative destination folder (keyed by file names)
-        :return: unique_folders : set of relative destination folder
-        """
 
-        # parse the input directory
-
-        jpg_files = glob.glob(folder+"\\*.jpg")
-        # windows does not care about case jpg_files = jpg_files + glob.glob(folder + "\\*.JPG")
-        jpg_files = jpg_files + glob.glob(folder + "\\*.jpeg")
-
-        jpg_files = jpg_files + glob.glob(folder + "\\*.mp4")
-
-        # return values
-        destination_folders = dict()
-        unique_folders = set()
-
-        cnt = 0
-        self.update_status(self.T['status1'])
-        for file in jpg_files:
-            capture_date = self.get_capture_date(file)
-            destination = "%.4d/%.2d" % (capture_date.year, capture_date.month)
-            destination_folders[file] = destination
-            if verbose:
-                self.Log(("%s : %.2d %.4d \n" % (os.path.basename(file), capture_date.month, capture_date.year)))
-            if destination not in unique_folders:
-                unique_folders.add(destination)
-            cnt += 1
-            self.UpdateProgress(cnt,len(jpg_files))
-            if self.mStopThreadRequest:
-                raise Exception("stopped")
-        print("%d files found" % len(jpg_files))
-        print("%d destination folders(s) " % len(unique_folders))
-
-        return destination_folders, unique_folders
-
-
-    def parse_source_folder_v2(self, folder, verbose=True):
+    def ParseSourceFolder(self, folder, verbose=True):
         """ find jpg files in the input folder
         :param folder: folder to parse
         :return: destination_folders : dict destination_folder_to_create -> list of files to copy
@@ -719,7 +686,7 @@ class SortImages(tk.Frame):
 
                 if  year_month  in src_folders:
                     if year_month in dst_folders:
-                        if not self.debug:
+                        if not self.mDebugFlag:
                             shutil.copy(file, destination_folder)
                         self.Log("%s %s -> %s\n" % (self.T['log6'], src_basename, destination_folder))
                         copied.append(src_basename)
@@ -728,7 +695,7 @@ class SortImages(tk.Frame):
                         not_selected.append(src_basename)
                 else:
                     if year_month in dst_folders:
-                        if not self.debug:
+                        if not self.mDebugFlag:
                             shutil.move(file, destination_folder)
                         self.Log("%s %s -> %s\n" % (self.T['log5'], src_basename, destination_folder))
                         moved.append(src_basename)

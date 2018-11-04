@@ -220,7 +220,7 @@ class SortImages(tk.Frame):
         """ % (__version__, __copyright__,"exifread",'https://github.com/ianare/exif-py')
         messagebox.showinfo(title=self.T['about'],message=about_txt)
 
-    def create_menubar(self):
+    def CreateMenuBar(self):
         menu_bar = Menu(self.root)
 
         file_menu = Menu(menu_bar, tearoff=0)
@@ -236,13 +236,68 @@ class SortImages(tk.Frame):
 
     def CreateUi(self):
         """ Create the UI. All widgets are instanciated here"""
-        self.create_menubar()
+        self.CreateMenuBar()
 
         #self.SRC_txt = Text(self)
+        self.uiSourceFrame = LabelFrame(self, text=self.T['uiSourceFrame'])
+        self.uiSourceFrame.grid(column=0, row=0, sticky=tk.W)
 
+        self.uiDestinationFrame = LabelFrame(self, text=self.T['uiDestinationFrame'])
+        self.uiDestinationFrame.grid(column=1, row=0, sticky=tk.W)
 
+        self.uiSourceButton = Button(self.uiSourceFrame)
+        self.uiSourceButton["text"] = self.T['uiSourceButton']
+        self.uiSourceButton["command"] = self.onSourceButton
+        self.uiSourceButton.grid(column=0, row=0, sticky=tk.W)
 
+        self.uiSourceValue = StringVar()
+        self.uiSourceValue.set(self.mSourceFolder)
 
+        self.uiSourceEntry = Entry(self.uiSourceFrame, textvariable=self.uiSourceValue, width=40)
+        self.uiSourceEntry.grid(column=0, row=1, columnspan=2)
+
+        self.uiSourceList = Listbox(self.uiSourceFrame)
+        self.uiSourceList["selectmode"] = EXTENDED
+        self.uiSourceList.bind('<Double-1>', self.onSourceListDbClick)
+        self.uiSourceList.grid(column=0, row=2, sticky='NWES', pady=5)
+
+        self.uiDestinationButton = Button(self.uiDestinationFrame)
+        self.uiDestinationButton["text"] = self.T['uiDestinationButton']
+        self.uiDestinationButton["command"] = self.onDestinationButton
+        self.uiDestinationButton.grid(column=0, row=0, sticky=tk.W)
+
+        self.uiDestinationValue = StringVar()
+        self.uiDestinationValue.set(self.mDestinationFolder)
+
+        self.uiDestinationEntry = Entry(self.uiDestinationFrame, textvariable=self.uiDestinationValue, width=40)
+        self.uiDestinationEntry.grid(column=0, row=1, sticky='EW')
+
+        self.uiDestinationList = Listbox(self.uiDestinationFrame)
+        self.uiDestinationList["selectmode"] = EXTENDED
+        self.uiDestinationList.bind('<Double-1>', self.onDestinationListDoubleClick)
+        self.uiDestinationList.grid(column=0, row=2, sticky='W', pady=5)
+
+        self.uiOperationFrame = LabelFrame(self.uiSourceFrame, text="Operation:")
+        # self.OPTION_fr.grid(column=0, row=2, columnspan=2, sticky=tk.W + tk.E)
+        self.uiOperationFrame.grid(column=1, row=2, columnspan=1, sticky='NW')
+
+        self.uiOperationValue = StringVar()
+        self.uiOperationValue.set('COPY')
+        self.uiOperationCopyRadioButton = Radiobutton(self.uiOperationFrame, text=self.T['ACTION_rb_cp'],
+                                                      variable=self.uiOperationValue,
+                                                      value='COPY')
+        self.uiOperationMoveRadioButton = Radiobutton(self.uiOperationFrame, text=self.T['ACTION_rb_mv'],
+                                                      variable=self.uiOperationValue,
+                                                      value='MOVE')
+        self.uiOperationCopyRadioButton["command"] = self.onOperationRadioButton
+        self.uiOperationMoveRadioButton["command"] = self.onOperationRadioButton
+        self.uiOperationCopyRadioButton.pack(side=TOP)
+        self.uiOperationMoveRadioButton.pack(side=BOTTOM)
+
+        self.uiProcessButton = Button(self)
+        self.uiProcessButton["text"] = self.T['uiProcessButton']
+        self.uiProcessButton["command"] = self.onProcessButton
+        self.uiProcessButton.grid(column=2, row=0, sticky='EWNS')
 
         # scrollbar: http://effbot.org/zone/tkinter-scrollbar-patterns.htm
         self.uiStatusText = Text(self, height=1)
@@ -260,64 +315,6 @@ class SortImages(tk.Frame):
 
 
 
-        self.uiSourceFrame = LabelFrame(self, text=self.T['uiSourceFrame'])
-        self.uiSourceFrame.grid(column=0, row=0, sticky=tk.W)
-
-        self.uiDestinationFrame = LabelFrame(self, text=self.T['uiDestinationFrame'])
-        self.uiDestinationFrame.grid(column=1, row=0, sticky=tk.W)
-
-        self.uiSourceButton = Button(self.uiSourceFrame)
-        self.uiSourceButton["text"] = self.T['uiSourceButton']
-        self.uiSourceButton["command"] = self.onSourceButton
-        self.uiSourceButton.grid(column = 0, row=0, sticky=tk.W)
-
-        self.uiSourceValue = StringVar()
-        self.uiSourceValue.set(self.mSourceFolder)
-
-        self.uiSourceEntry = Entry(self.uiSourceFrame, textvariable=self.uiSourceValue, width=40)
-        self.uiSourceEntry.grid(column=0, row=1,columnspan=2)
-
-        self.uiSourceList = Listbox(self.uiSourceFrame)
-        self.uiSourceList["selectmode"] = EXTENDED
-        self.uiSourceList.bind('<Double-1>', self.onSourceListDbClick)
-        self.uiSourceList.grid(column=0, row=2, sticky='NWES', pady = 5)
-
-
-        self.uiDestinationButton = Button(self.uiDestinationFrame)
-        self.uiDestinationButton["text"] = self.T['uiDestinationButton']
-        self.uiDestinationButton["command"] = self.onDestinationButton
-        self.uiDestinationButton.grid(column=0, row=0, sticky=tk.W)
-
-        self.uiDestinationValue = StringVar()
-        self.uiDestinationValue.set(self.mDestinationFolder)
-
-        self.uiDestinationEntry = Entry(self.uiDestinationFrame, textvariable=self.uiDestinationValue, width=40)
-        self.uiDestinationEntry.grid(column=0, row=1, sticky='EW')
-
-        self.uiDestinationList = Listbox(self.uiDestinationFrame)
-        self.uiDestinationList["selectmode"] = EXTENDED
-        self.uiDestinationList.bind('<Double-1>', self.onDestinationListDoubleClick)
-        self.uiDestinationList.grid(column=0, row=2, sticky='W', pady = 5)
-
-        self.uiOperationFrame = LabelFrame(self.uiSourceFrame, text="Operation:")
-        #self.OPTION_fr.grid(column=0, row=2, columnspan=2, sticky=tk.W + tk.E)
-        self.uiOperationFrame.grid(column=1, row=2, columnspan=1, sticky='NW')
-
-        self.uiOperationValue = StringVar()
-        self.uiOperationValue.set('COPY')
-        self.uiOperationCopyRadioButton = Radiobutton(self.uiOperationFrame, text=self.T['ACTION_rb_cp'], variable=self.uiOperationValue,
-                                                      value='COPY')
-        self.uiOperationMoveRadioButton = Radiobutton(self.uiOperationFrame, text=self.T['ACTION_rb_mv'], variable=self.uiOperationValue,
-                                                      value='MOVE')
-        self.uiOperationCopyRadioButton["command"] = self.onOperationRadioButton
-        self.uiOperationMoveRadioButton["command"] = self.onOperationRadioButton
-        self.uiOperationCopyRadioButton.pack(side=TOP)
-        self.uiOperationMoveRadioButton.pack(side=BOTTOM)
- 
-        self.uiProcessButton = Button(self)
-        self.uiProcessButton["text"] = self.T['uiProcessButton']
-        self.uiProcessButton["command"] = self.onProcessButton
-        self.uiProcessButton.grid(column=2, row=0, sticky='WNS')
 
     def onSourceListDbClick(self, event):
         """ add any double click item from source to dst """
@@ -338,7 +335,7 @@ class SortImages(tk.Frame):
             label = label + " [cp]"
 
         # move it to the destination list after sorting again all entries
-        self.add_item_to_list_widget(self.uiDestinationList, label)
+        self.AddItemToUiList(self.uiDestinationList, label)
 
 
     def onDestinationListDoubleClick(self, event):
@@ -355,7 +352,7 @@ class SortImages(tk.Frame):
         widget_list.delete(index)
 
         #put back the selection on the source side (in copy it was never removed in the first place)
-        self.add_item_to_list_widget(self.uiSourceList, label)
+        self.AddItemToUiList(self.uiSourceList, label)
 
 
 
@@ -376,7 +373,7 @@ class SortImages(tk.Frame):
             else:
                 raise "Unknown operation"
             # move it to the destination list after sorting again all entries
-            self.add_item_to_list_widget(self.uiDestinationList, label)
+            self.AddItemToUiList(self.uiDestinationList, label)
 
         # If move mode delete the entry to make it clear it will be moved
         # delete in reverse order so that removing an index does not change the
@@ -530,7 +527,7 @@ class SortImages(tk.Frame):
             raise
 
 
-    def add_item_to_list_widget(self,widget,item):
+    def AddItemToUiList(self, widget, item):
         # move it to the destination list after sorting again all entries
         current_items = widget.get(0,END)
 
